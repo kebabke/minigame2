@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>카피바라 서바이벌</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; }
+        body { background-color: #2c3e50; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; position: fixed; width: 100%; }
+        
+        #game-container { position: relative; width: 100%; max-width: 1050px; height: 100vh; max-height: 650px; background-color: #7f8c8d; border: 4px solid #34495e; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: row;}
+        
+        /* 좌측 상태 패널 */
+        #left-status-panel { width: 250px; background-color: rgba(0,0,0,0.7); color: white; padding: 20px; font-size: 14px; display: flex; flex-direction: column; gap: 8px; border-right: 2px solid #34495e; z-index: 10; justify-content: space-between; overflow-y: auto; }
+        .panel-section h3 { color: #f1c40f; font-size: 16px; border-bottom: 1px solid #7f8c8d; padding-bottom: 5px; margin-top: 5px; margin-bottom: 5px;}
+        .status-row { display: flex; justify-content: space-between; margin-bottom: 3px;}
+        
+        .equipped-weapon-box { background: rgba(255,255,255,0.1); padding: 8px; border-radius: 5px; margin-bottom: 5px; border: 1px solid #7f8c8d; }
+        .equipped-weapon-title { font-size: 11px; color: #bdc3c7; }
+        .equipped-weapon-name { font-weight: bold; font-size: 15px; color: #fff; margin: 3px 0; }
+        .equipped-weapon-ammo { font-size: 12px; color: #f39c12; }
+
+        #ui-pollution-left { font-size: 13px; color: #e74c3c; font-weight: bold; text-align: center; margin-top: 5px; padding: 10px 5px; background: rgba(231, 76, 60, 0.2); border-radius: 5px; display: none; line-height: 1.5; word-break: keep-all; }
+
+        /* 메인 뷰 & 캐릭터 시각 요소 */
+        #main-view { flex-grow: 1; position: relative; width: 100%; background-color: #95a5a6; transition: background-color 0.5s ease; overflow: hidden; }
+        #character-area { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); text-align: center; position: relative; width: 200px; height: 200px; }
+        .capybara { font-size: 100px; line-height: 200px; }
+        
+        .vis-icon { position: absolute; font-size: 40px; display: none; filter: drop-shadow(2px 4px 6px black); }
+        #vis-helmet { top: -10px; left: 80px; font-size: 45px;}
+        #vis-weapon { top: 80px; left: -20px; font-size: 50px; transform: scaleX(-1); }
+        #vis-bag { top: 90px; right: -10px; font-size: 50px;}
+        #vis-armor { top: 150px; left: 80px; }
+
+        /* 게임 오버 스크린 */
+        #game-over-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 50; flex-direction: column; justify-content: center; align-items: center; color: #e74c3c; }
+        #game-over-screen h1 { font-size: 50px; margin-bottom: 20px; text-shadow: 2px 2px 5px #000; text-align: center; }
+        #death-reason { margin-bottom: 30px; font-size: 16px; color: #ecf0f1; text-align: left; width: 80%; max-width: 600px; line-height: 1.5; background: rgba(0,0,0,0.7); padding: 20px; border-radius: 10px; border: 2px solid #c0392b; overflow-y: auto; max-height: 300px; }
+        #btn-restart { padding: 15px 40px; font-size: 20px; font-weight: bold; cursor: pointer; background-color: #c0392b; color: white; border: 2px solid #fff; border-radius: 10px; transition: 0.3s; }
+        #btn-restart:hover { background-color: #e74c3c; transform: scale(1.05); }
+
+        /* 버튼 및 모달 UI */
+        #journal-btn { position: absolute; bottom: 30px; right: 30px; width: 80px; height: 100px; background-color: #f1c40f; border: 2px solid #e67e22; border-radius: 5px 15px 15px 5px; cursor: pointer; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 18px; color: #d35400; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); transition: transform 0.2s; z-index: 20; }
+        #journal-btn:hover { transform: translateY(-5px) rotate(5deg); }
+
+        #journal-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 750px; height: 550px; max-width: 95%; max-height: 90%; background-color: #fcf3cf; border-radius: 10px; border: 2px solid #b7950b; box-shadow: 0 0 30px rgba(0,0,0,0.9); flex-direction: column; z-index: 100; }
+        
+        #close-btn { position: absolute; top: -15px; right: -15px; width: 40px; height: 40px; border-radius: 50%; background-color: #c0392b; color: white; font-size: 20px; font-weight: bold; cursor: pointer; border: 2px solid #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 101; transition: 0.2s; }
+        #close-btn:hover { background-color: #e74c3c; transform: scale(1.1); }
+
+        .tabs { display: flex; background-color: #d4ac0d; border-radius: 8px 8px 0 0; }
+        .tab-btn { flex: 1; padding: 15px 0; border: none; background: none; font-size: 16px; font-weight: bold; color: #fff; cursor: pointer; border-right: 1px solid #b7950b; transition: 0.2s; position: relative; }
+        .tab-btn:last-child { border-right: none; }
+        .tab-btn.active { background-color: #fcf3cf; color: #873600; }
+        .tab-btn.highlight { background-color: #e74c3c; color: white; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { background-color: #e74c3c; } 50% { background-color: #c0392b; } 100% { background-color: #e74c3c; } }
+
+        .badge-new { display: none; position: absolute; top: 5px; right: 10px; background-color: #e74c3c; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold; box-shadow: 0 0 5px rgba(0,0,0,0.5); animation: pulse 1.5s infinite;}
+
+        .tab-content { display: none; padding: 25px; flex-grow: 1; overflow-y: auto; color: #3e2723; text-align: left; }
+        .tab-content.active { display: block; }
+
+        .action-select-btn, .event-choice-btn { display: block; width: 100%; padding: 15px; margin-bottom: 5px; background-color: #fff; border: 1px solid #b7950b; border-radius: 5px; text-align: left; cursor: pointer; font-size: 16px; transition: 0.2s; font-weight: bold; }
+        .action-select-btn:hover, .event-choice-btn:hover:not(:disabled) { background-color: #fdebd0; }
+        .action-select-btn.selected { background-color: #e67e22; color: white; border-color: #d35400; }
+        
+        .event-choice-btn { text-align: center; background-color: #34495e; color: white; border-color: #2c3e50; margin-bottom: 10px; }
+        .event-choice-btn:hover:not(:disabled) { background-color: #2c3e50; color: #f1c40f; }
+        .event-choice-btn.selected, .event-choice-btn.confirmed { background-color: #7f8c8d !important; border-color: #95a5a6 !important; color: #ecf0f1 !important; cursor: not-allowed; box-shadow: inset 0 3px 6px rgba(0,0,0,0.5); }
+        .ack-btn { background-color: #27ae60; color: white; border-color: #2ecc71; }
+        .ack-btn:hover:not(:disabled) { background-color: #2ecc71; color: white; }
+        .ack-btn.selected { background-color: #f1c40f !important; border-color: #f39c12 !important; color: #fff !important; }
+
+        .sub-menu { display: none; padding: 10px; background-color: rgba(0,0,0,0.05); border-left: 3px solid #e67e22; margin-bottom: 10px; }
+        .sub-btn { padding: 10px 15px; margin-right: 5px; margin-bottom: 5px; cursor: pointer; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; }
+        .sub-btn.selected { background-color: #3498db; color: white; border-color: #2980b9; }
+        .heal-item-label { display: block; margin-bottom: 5px; cursor: pointer; font-size: 15px; }
+
+        #proceed-area { padding: 15px; border-top: 2px dashed #b7950b; display: flex; justify-content: space-between; align-items: center; background: #fcf3cf; border-radius: 0 0 10px 10px;}
+        #pending-status-box { display: flex; flex-direction: column; gap: 5px; }
+        #proceed-btn { padding: 12px 30px; background-color: #27ae60; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        #proceed-btn:hover:not(:disabled) { background-color: #2ecc71; }
+        #proceed-btn:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        #proceed-btn.error-btn { background-color: #c0392b; }
+        
+        .log-box { background: rgba(255,255,255,0.7); padding: 12px; border-radius: 5px; margin-bottom: 10px; line-height: 1.6; font-size: 15px;}
+        .log-combat { border-left: 5px solid #e74c3c; }
+        .log-action { border-left: 5px solid #3498db; }
+        .log-event { border-left: 5px solid #f1c40f; background: rgba(241, 196, 15, 0.1); }
+        .text-danger { color: #c0392b; font-weight: bold; }
+        .text-success { color: #27ae60; font-weight: bold; }
+
+        .inv-container { display: flex; gap: 20px; height: 100%; }
+        .inv-column { flex: 1; background: rgba(255,255,255,0.4); padding: 15px; border-radius: 8px; border: 1px solid #d4ac0d; overflow-y: auto; }
+        .inv-column h3 { margin-bottom: 10px; color: #873600; border-bottom: 2px dashed #b7950b; padding-bottom: 5px; }
+        
+        .equip-slot { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.05); padding: 8px; margin-bottom: 8px; border-radius: 4px; font-size: 14px; border: 1px solid #d4ac0d; }
+        .inv-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; background: #fff; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; font-weight: bold; }
+        .btn-small { padding: 6px 12px; font-size: 12px; cursor: pointer; border: none; border-radius: 3px; color: white; margin-left: 5px; font-weight: bold; }
+        .btn-equip { background-color: #2980b9; }
+        .btn-unequip { background-color: #e67e22; }
+        .btn-discard { background-color: #c0392b; }
+
+        /* 모바일 대응 최적화 */
+        @media screen and (max-width: 850px) {
+            #game-container { flex-direction: column; width: 100vw; height: 100vh; max-height: none; border: none; border-radius: 0; }
+            #left-status-panel { width: 100%; height: auto; max-height: 30vh; border-right: none; border-bottom: 3px solid #34495e; flex-direction: row; flex-wrap: wrap; align-items: flex-start; padding: 10px; }
+            .panel-section { width: 48%; margin-bottom: 5px; }
+            .panel-section h3 { font-size: 14px; margin-top: 0;}
+            .status-row { font-size: 12px; }
+            
+            #main-view { width: 100%; flex-grow: 1; height: 70vh; }
+            #character-area { transform: translate(-50%, -50%) scale(0.7); top: 40%; }
+            #journal-btn { bottom: 15px; right: 15px; width: 65px; height: 80px; font-size: 15px; }
+            
+            #journal-modal { width: 95%; height: 92%; }
+            #close-btn { top: 5px; right: 5px; width: 35px; height: 35px; font-size: 16px; border-radius: 5px; } /* 모바일에서는 잘리지 않게 안쪽으로 */
+            
+            .tab-btn { font-size: 13px; padding: 12px 5px; }
+            .tab-content { padding: 15px; }
+            
+            .inv-container { flex-direction: column; display: block; }
+            .inv-column { width: 100%; margin-bottom: 15px; overflow: visible; height: auto; }
+            
+            #proceed-area { flex-direction: column; gap: 10px; text-align: center; padding: 10px; }
+            #proceed-btn { width: 100%; padding: 15px; font-size: 16px; }
+            .action-select-btn, .event-choice-btn { padding: 12px; font-size: 14px; }
+            
+            #game-over-screen h1 { font-size: 40px; }
+            #death-reason { font-size: 14px; padding: 15px; width: 90%; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="left-status-panel">
+        <div class="panel-section">
+            <div style="text-align: center; font-size: 18px; font-weight: bold; color: #f1c40f; margin-bottom: 5px;">페이즈 <span id="ui-phase-left">1</span></div>
+            <div style="text-align: center; font-size: 13px; color: #bdc3c7; border-bottom: 1px solid #7f8c8d; padding-bottom: 10px; margin-bottom: 10px;">턴 <span id="ui-turn-left">1</span></div>
+            
+            <h3>📊 상태</h3>
+            <div class="status-row"><span>❤️ HP</span> <span id="ui-hp">100 / 100</span></div>
+            <div class="status-row"><span>⚔️ CP</span> <span id="ui-cp" style="color: #f1c40f; font-weight: bold;">0</span></div>
+            <div class="status-row"><span>🎒 무게</span> <span id="ui-weight">0 / 10</span></div>
+            <div style="font-size: 11px; color: #e74c3c; margin-bottom: 5px;" id="ui-ammo-warning"></div>
+            
+            <div id="ui-pollution-left">⚠️ 누적 오염 구역<br></div>
+        </div>
+
+        <div class="panel-section">
+            <h3>🔫 장착 무기</h3>
+            <div class="equipped-weapon-box">
+                <div class="equipped-weapon-title">주무기</div>
+                <div class="equipped-weapon-name" id="ui-main-w-name">없음</div>
+                <div class="equipped-weapon-ammo" id="ui-main-w-ammo"></div>
+            </div>
+            <div class="equipped-weapon-box">
+                <div class="equipped-weapon-title">저격총</div>
+                <div class="equipped-weapon-name" id="ui-sniper-w-name">없음</div>
+                <div class="equipped-weapon-ammo" id="ui-sniper-w-ammo"></div>
+            </div>
+
+            <div style="border-top: 1px dashed #7f8c8d; padding-top: 10px; margin-top: 10px;">
+                <div style="font-size: 13px; color: #bdc3c7;">📍 현재 위치: <span style="color: #3498db; font-weight: bold;" id="ui-area-left">주거 단지</span></div>
+                <div style="font-size: 13px; color: #bdc3c7; margin-top: 5px;">생존자 수 (적)</div>
+                <div style="font-size: 22px; font-weight: bold; color: #e74c3c; text-align: left;"><span id="ui-enemies-left">100</span> / 100</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-view">
+        <div id="game-over-screen">
+            <h1>YOU DIED</h1>
+            <div id="death-reason"></div>
+            <button id="btn-restart" onclick="restartGame()">다시 시작</button>
+        </div>
+
+        <div id="character-area">
+            <div id="vis-helmet" class="vis-icon">🪖</div>
+            <div id="vis-armor" class="vis-icon">👕</div>
+            <div id="vis-bag" class="vis-icon">🎒</div>
+            <div class="capybara" id="capybara-sprite">🐹</div>
+            <div id="vis-weapon" class="vis-icon">🏏</div>
+        </div>
+
+        <div id="journal-btn" onclick="toggleJournal()">수첩<br>열기</div>
+
+        <div id="journal-modal">
+            <button id="close-btn" onclick="toggleJournal()">X</button>
+            
+            <div class="tabs">
+                <button class="tab-btn active" id="tab-btn-result" onclick="openTab('tab-result', this)">📝 결과</button>
+                <button class="tab-btn" id="tab-btn-action" onclick="openTab('tab-action', this)">🏃 행동</button>
+                <button class="tab-btn" id="tab-btn-event" onclick="openTab('tab-event', this)">⚠️ 이벤트</button>
+                <button class="tab-btn" id="tab-btn-inventory" onclick="clearNewBadge(); openTab('tab-inventory', this)">🎒 인벤토리 <span id="badge-new-item" class="badge-new">NEW</span></button>
+            </div>
+
+            <div id="tab-result" class="tab-content active">
+                <h1 id="main-outcome" style="text-align: center; color: #e67e22; margin-bottom: 20px; font-size: 32px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">새로운 아침</h1>
+                <div id="result-log"></div>
+            </div>
+
+            <div id="tab-action" class="tab-content">
+                <h3>이번 턴 행동 선택</h3>
+                <br>
+                <button class="action-select-btn" id="btn-act-farming" onclick="selectAction('farming', this)">🔍 파밍</button>
+                <button class="action-select-btn" id="btn-act-move" onclick="selectAction('move', this)">🚶 이동</button>
+                <div id="sub-move" class="sub-menu">
+                    <p style="font-size: 13px; margin-bottom: 5px; color:#555;">어디로 이동하시겠습니까?</p>
+                    <div id="move-options"></div>
+                </div>
+                <button class="action-select-btn" id="btn-act-hide" onclick="selectAction('hide', this)">🥷 숨기</button>
+                <button class="action-select-btn" id="btn-act-fight" onclick="selectAction('fight', this)">🔫 교전</button>
+                <button class="action-select-btn" id="btn-act-heal" onclick="selectAction('heal', this)">💊 회복</button>
+                <div id="sub-heal" class="sub-menu">
+                    <p style="font-size: 13px; margin-bottom: 5px; color:#555;">어떤 아이템을 사용하시겠습니까?</p>
+                    <div id="heal-options"></div>
+                </div>
+            </div>
+
+            <div id="tab-event" class="tab-content">
+                <h3 id="event-title">현재 발생한 이벤트가 없습니다.</h3>
+                <div id="event-description" style="margin: 15px 0; padding: 15px; background-color: rgba(0,0,0,0.05); border-left: 4px solid #c0392b; font-size: 16px; font-weight: bold; line-height: 1.5; display: none;"></div>
+                <div id="event-choices"></div>
+            </div>
+
+            <div id="tab-inventory" class="tab-content">
+                <div class="inv-container">
+                    <div class="inv-column">
+                        <h3>장착 장비 <span style="font-size: 12px; color: #7f8c8d; font-weight: normal;">(무게 제외)</span></h3>
+                        <div id="equipment-slots"></div>
+                    </div>
+                    <div class="inv-column">
+                        <h3>가방 <span style="font-size: 14px; font-weight: normal; color: #c0392b;" id="ui-weight-inv-text">(무게: <span id="ui-weight-inv">0 / 10</span>)</span></h3>
+                        <div id="inventory-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="proceed-area">
+                <div id="pending-status-box">
+                    <span id="pending-event-status" style="font-size: 13px; color: #e67e22;">▶ 이벤트 대기 중...</span>
+                    <span id="pending-action-status" style="font-size: 13px; color: #3498db;">▶ 행동 미선택</span>
+                </div>
+                <button id="proceed-btn" onclick="executeTurn()" disabled>진행 (다음 턴)</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const AREA_LIST = ["학교", "병원", "주거 단지", "지하 벙커", "군사 시설"];
+    
+    const DATA = {
+        areas: {
+            "학교": { encounterRateBase: 0.4, pool: ["W03","W03","W03","W03","W03","W03", "W04","W04", "W05","W05", "W06","W06","W06","W06", "W01","W01", "W02","W02", "M01","M01","M01","M01","M01","M01","M01", "M02","M02","M02","M02", "H02","H02","H02", "H01","H01", "AR01", "AR04", "B01"] },
+            "병원": { encounterRateBase: 0.3, pool: ["W09","W09", "W03","W03", "W01","W01", "W02","W02","W02", "M04","M04", "M01","M01", "H01","H01","H01","H01","H01","H01", "H02","H02","H02","H02","H02", "H03","H03","H03","H03", "H04","H04", "AR04", "AR05"] },
+            "주거 단지": { encounterRateBase: 0.2, pool: ["B01","B01","B01", "B02","B02", "M01","M01","M01","M01","M01","M01", "M02","M02","M02","M02", "M03","M03","M03", "H01","H01", "H02","H02","H02", "H03", "W01","W01", "W02", "W03","W03", "AR01", "AR04"] },
+            "지하 벙커": { encounterRateBase: 0.8, pool: ["W07","W07","W07","W07", "W08","W08","W08","W08", "W06","W06","W06","W06", "W04","W04", "W02", "M03","M03","M03","M03","M03","M03", "M02","M02","M02","M02", "M01","M01", "AR02","AR02", "AR05","AR05", "H03","H03", "H02","H02", "B02", "M04"] },
+            "군사 시설": { encounterRateBase: 0.9, pool: ["W07","W07","W07","W07", "W08","W08","W08","W08","W08","W08", "W09","W09", "W10","W10","W10","W10", "W05","W05", "AR03","AR03", "AR02", "AR06","AR06","AR06", "AR05", "M03","M03","M03","M03","M03","M03", "M04","M04","M04","M04", "M02", "H03", "H04", "B03"] }
+        },
+        phases: { 1: { maxTurn: 3 }, 2: { maxTurn: 5 }, 3: { maxTurn: 5 }, 4: { maxTurn: 5 }, 5: { maxTurn: 5 } },
+        weapons: {
+            "W01": { name: "나무 막대", type: "근접무기", slot: "mainWeapon", cp: 1, weight: 1, ammoType: "없음", ammoCost: 0, icon: "🏏" },
+            "W02": { name: "몽둥이", type: "근접무기", slot: "mainWeapon", cp: 2, weight: 2, ammoType: "없음", ammoCost: 0, icon: "🏏" },
+            "W03": { name: "P18C", type: "권총", slot: "mainWeapon", cp: 8, weight: 2, ammoType: "권총탄", ammoCost: 1, icon: "🔫" },
+            "W04": { name: "D.Eagle", type: "권총", slot: "mainWeapon", cp: 10, weight: 3, ammoType: "권총탄", ammoCost: 1, icon: "🔫" },
+            "W05": { name: "더블 배럴", type: "샷건", slot: "mainWeapon", cp: 18, weight: 5, ammoType: "샷건탄", ammoCost: 2, icon: "🔫" },
+            "W06": { name: "펌프", type: "샷건", slot: "mainWeapon", cp: 16, weight: 5, ammoType: "샷건탄", ammoCost: 2, icon: "🔫" },
+            "W07": { name: "M4A1", type: "소총", slot: "mainWeapon", cp: 15, weight: 5, ammoType: "소총탄", ammoCost: 2, icon: "🔫" },
+            "W08": { name: "AK-47", type: "소총", slot: "mainWeapon", cp: 17, weight: 5, ammoType: "소총탄", ammoCost: 2, icon: "🔫" },
+            "W09": { name: "M700", type: "저격총", slot: "sniperWeapon", cp: 20, weight: 6, ammoType: "저격탄", ammoCost: 2, icon: "🔭" },
+            "W10": { name: "SDM-R", type: "저격총", slot: "sniperWeapon", cp: 25, weight: 7, ammoType: "저격탄", ammoCost: 3, icon: "🔭" }
+        },
+        armors: {
+            "AR01": { name: "오토바이 헬멧", slot: "helmet", cp: 2, weight: 1 }, "AR02": { name: "군용 헬멧", slot: "helmet", cp: 4, weight: 2 }, "AR03": { name: "전술 헬멧", slot: "helmet", cp: 6, weight: 2 },
+            "AR04": { name: "패딩 조끼", slot: "armor", cp: 2, weight: 3 }, "AR05": { name: "방검 조끼", slot: "armor", cp: 5, weight: 4 }, "AR06": { name: "방탄 조끼", slot: "armor", cp: 8, weight: 5 }
+        },
+        backpacks: { "B01": { name: "작은 가방", slot: "backpack", maxWeightBonus: 10, weight: 0 }, "B02": { name: "등산 가방", slot: "backpack", maxWeightBonus: 20, weight: 0 }, "B03": { name: "군용 가방", slot: "backpack", maxWeightBonus: 30, weight: 0 } },
+        healingItems: { "H01": { name: "진통제", weight: 1, heal: 10 }, "H02": { name: "붕대", weight: 1, heal: 20 }, "H03": { name: "구급약", weight: 2, heal: 40 }, "H04": { name: "응급처치 키트", weight: 3, heal: 80 } },
+        ammoItems: { "M01": { name: "권총탄 묶음", amount: 6, weight: 2, targetWeapon: "권총" }, "M02": { name: "샷건탄 묶음", amount: 4, weight: 2, targetWeapon: "샷건" }, "M03": { name: "소총탄 묶음", amount: 6, weight: 3, targetWeapon: "소총" }, "M04": { name: "저격탄 묶음", amount: 3, weight: 2, targetWeapon: "저격총" } },
+        enemies: {
+            "E01": { name: "막대 도주민", cp: 1, drops: ["W01"] }, "E02": { name: "몽둥이 불량배", cp: 2, drops: ["W02"] }, "E03": { name: "패딩 돌격꾼", cp: 4, drops: ["W02", "AR04"] }, 
+            "E04": { name: "P18C 러너", cp: 8, drops: ["W03", "M01"] }, "E05": { name: "D.Eagle 사냥꾼", cp: 10, drops: ["W04", "M01"] }, "E06": { name: "펌프 매복꾼", cp: 16, drops: ["W06", "M02"] },
+            "E07": { name: "더블 배럴 브루저", cp: 18, drops: ["W05", "M02"] }, "E08": { name: "M4A1 수색병", cp: 17, drops: ["W07", "AR01", "M03"] }, "E09": { name: "AK-47 탈영병", cp: 26, drops: ["W08", "AR02", "AR05", "M03"] }, 
+            "E10": { name: "M700 지정사수", cp: 24, drops: ["W09", "AR02", "M04"] }, "E11": { name: "SDM-R 정예사수", cp: 36, drops: ["W10", "AR03", "AR05", "M04"] },
+            "F01": { name: "최후의 1인 - 돌격형", cp: 31, drops: ["W08", "AR03", "AR06", "M03", "H04"] }, "F02": { name: "최후의 1인 - 저격형", cp: 56, drops: ["W09", "W10", "AR03", "AR05", "M04", "H04"] }, "F03": { name: "최후의 1인 - 균형형", cp: 47, drops: ["W07", "W09", "AR02", "AR06", "M03", "M04", "H04"] }
+        },
+        encounterPools: {
+            "p1_t3": [{id: "E01", weight: 35}, {id: "E02", weight: 30}, {id: "E04", weight: 25}, {id: "E05", weight: 10}],
+            "p2": [{id: "E02", weight: 10}, {id: "E03", weight: 10}, {id: "E04", weight: 20}, {id: "E05", weight: 15}, {id: "E06", weight: 20}, {id: "E07", weight: 15}, {id: "E08", weight: 10}],
+            "p3": [{id: "E04", weight: 10}, {id: "E05", weight: 10}, {id: "E06", weight: 15}, {id: "E07", weight: 10}, {id: "E08", weight: 20}, {id: "E09", weight: 15}, {id: "E10", weight: 20}],
+            "p4": [{id: "E06", weight: 8}, {id: "E07", weight: 10}, {id: "E08", weight: 18}, {id: "E09", weight: 24}, {id: "E10", weight: 18}, {id: "E11", weight: 22}],
+            "p5": [{id: "E07", weight: 8}, {id: "E08", weight: 15}, {id: "E09", weight: 28}, {id: "E10", weight: 18}, {id: "E11", weight: 31}],
+            "p5_t5": [{id: "F01", weight: 40}, {id: "F02", weight: 25}, {id: "F03", weight: 35}]
+        },
+        events: [
+            { id: "EV_I_001", type: "imm", name: "멀리서 총성이 잦아들었다", phaseMin: 1, phaseMax: 5, area: "전체", weight: 10, e1: "survivor", v1: 2 },
+            { id: "EV_I_002", type: "imm", name: "야간 난투의 흔적이 발견되었다", phaseMin: 2, phaseMax: 5, area: "전체", weight: 8, e1: "survivor", v1: 4 },
+            { id: "EV_I_003", type: "imm", name: "오염지대에서 비명이 들려왔다", phaseMin: 2, phaseMax: 5, area: "전체", weight: 7, e1: "survivor", v1: 3 },
+            { id: "EV_I_004", type: "imm", name: "먼 곳에서 구조물이 붕괴했다", phaseMin: 3, phaseMax: 5, area: "전체", weight: 6, e1: "survivor", v1: 5 },
+            { id: "EV_I_005", type: "imm", name: "보이지 않는 곳에서 또 누군가 쓰러졌다", phaseMin: 4, phaseMax: 5, area: "전체", weight: 5, e1: "survivor", v1: 6 },
+            { id: "EV_I_006", type: "imm", name: "먼 폭발의 충격파가 전해졌다", phaseMin: 2, phaseMax: 5, area: "전체", weight: 6, e1: "hp", v1: -5 },
+            { id: "EV_I_009", type: "imm", name: "버려진 진통제를 주웠다", phaseMin: 1, phaseMax: 5, area: "전체", weight: 8, e1: "item", v1: "H01" },
+            { id: "EV_I_010", type: "imm", name: "붕대 꾸러미를 발견했다", phaseMin: 1, phaseMax: 5, area: "전체", weight: 8, e1: "item", v1: "H02" },
+            { id: "EV_I_025", type: "imm", name: "벙커 탄약 캐비닛이 반쯤 열려 있었다", phaseMin: 2, phaseMax: 5, area: "지하 벙커", weight: 8, e1: "item", v1: "M03", e2: "item", v2: "M02" },
+            
+            { id: "EV_C_001", type: "choice", name: "낙오자의 흔적이 이어져 있다", phaseMin: 1, phaseMax: 5, area: "전체", weight: 10, choices: [ { text: "흔적을 쫓는다", encMod: 0.15, extraLoot: 1 }, { text: "숨을 죽이고 피한다", encMod: -0.10 } ] },
+            { id: "EV_C_002", type: "choice", name: "무너진 엄폐물이 눈에 띈다", phaseMin: 1, phaseMax: 5, area: "전체", weight: 10, choices: [ { text: "자리를 선점한다", cpBonus: 10 }, { text: "돌아서 간다", encModMove: -0.10 } ] },
+            { id: "EV_C_007", type: "choice", name: "잠긴 교무실 문이 보인다", phaseMin: 1, phaseMax: 5, area: "학교", weight: 10, choices: [ { text: "문을 부순다", items: ["M01", "H01"], encMod: 0.10 }, { text: "조용히 주변만 뒤진다", items: ["H02"], encMod: -0.05 } ] }
+        ]
+    };
+
+    // 정렬 도우미 함수 (의료템 > 무기 > 탄약 > 방어구 > 가방)
+    function getSortScore(id) {
+        if (DATA.healingItems[id]) return 10000 + DATA.healingItems[id].heal;
+        if (DATA.weapons[id]) return 8000 + DATA.weapons[id].cp;
+        if (DATA.ammoItems[id]) return 6000 + DATA.ammoItems[id].amount;
+        if (DATA.armors[id]) return 4000 + DATA.armors[id].cp;
+        if (DATA.backpacks[id]) return 2000 + DATA.backpacks[id].maxWeightBonus;
+        return 0;
+    }
+
+    function getItemName(id) {
+        if (DATA.weapons[id]) return DATA.weapons[id].name;
+        if (DATA.armors[id]) return DATA.armors[id].name;
+        if (DATA.backpacks[id]) return DATA.backpacks[id].name;
+        if (DATA.healingItems[id]) return DATA.healingItems[id].name;
+        if (DATA.ammoItems[id]) return DATA.ammoItems[id].name;
+        return "알 수 없는 아이템";
+    }
+    function getItemDef(id) { return DATA.weapons[id] || DATA.armors[id] || DATA.backpacks[id] || DATA.healingItems[id] || DATA.ammoItems[id]; }
+
+    let gameState = {};
+    let turnState = { actionType: null, actionData: null, currentEvent: null, eventChoice: null, tempMod: { enc: 0, cp: 0, loot: 0, encMove: 0 }, healQueue: [] };
+
+    function initGame() {
+        let startRand = Math.random() * 100;
+        let startArea = "주거 단지";
+        if(startRand < 35) startArea = "학교";
+        else if(startRand < 70) startArea = "주거 단지";
+        else if(startRand < 90) startArea = "병원";
+        else if(startRand < 95) startArea = "지하 벙커";
+        else startArea = "군사 시설";
+
+        gameState = {
+            globalTurn: 1, phase: 1, turnInPhase: 1, hp: 100, maxHp: 100, cp: 0,
+            currentArea: startArea, pollutedAreas: [], inventory: [], weight: 0, maxWeight: 10, isOverweight: false,
+            equipment: { mainWeapon: null, sniperWeapon: null, helmet: null, armor: null, backpack: null },
+            ammo: { "권총탄": 0, "샷건탄": 0, "소총탄": 0, "저격탄": 0 },
+            areaPools: {
+                "학교": [...DATA.areas["학교"].pool], "병원": [...DATA.areas["병원"].pool], "주거 단지": [...DATA.areas["주거 단지"].pool],
+                "지하 벙커": [...DATA.areas["지하 벙커"].pool], "군사 시설": [...DATA.areas["군사 시설"].pool]
+            },
+            enemiesLeft: 100,
+            isDead: false
+        };
+        
+        document.getElementById('capybara-sprite').innerText = '🐹';
+        document.getElementById('game-over-screen').style.display = 'none';
+        document.getElementById('journal-modal').style.display = 'none';
+        document.getElementById('ui-pollution-left').style.display = 'none';
+        
+        let startLog = `<div class="log-box log-action">게임이 시작되었습니다. 당신은 <strong>[${gameState.currentArea}]</strong>에 있습니다.<br>수첩을 열어 생존을 위한 첫 행동을 결정하십시오.</div>`;
+        document.getElementById('result-log').innerHTML = startLog;
+        document.getElementById('main-outcome').innerText = "새로운 아침";
+        clearNewBadge();
+        
+        updateBackground();
+        calculateStats();
+        prepareNextTurn(); 
+    }
+
+    function updateBackground() {
+        const bgColors = { "학교": "#d2d7d3", "병원": "#e4ecec", "주거 단지": "#95a5a6", "지하 벙커": "#2c3e50", "군사 시설": "#4b6584" };
+        document.getElementById('main-view').style.backgroundColor = bgColors[gameState.currentArea] || "#95a5a6";
+    }
+
+    function acquireItem(itemId) {
+        let def = getItemDef(itemId);
+        let autoEquipped = false;
+        if (def && def.slot) {
+            if (!gameState.equipment[def.slot]) {
+                gameState.equipment[def.slot] = itemId;
+                autoEquipped = true;
+            }
+        }
+        if (!autoEquipped) {
+            gameState.inventory.push(itemId);
+            document.getElementById('badge-new-item').style.display = 'inline-block';
+        }
+    }
+
+    function clearNewBadge() { document.getElementById('badge-new-item').style.display = 'none'; }
+
+    function updateEquipmentVisuals() {
+        document.getElementById('vis-helmet').style.display = gameState.equipment.helmet ? 'block' : 'none';
+        document.getElementById('vis-armor').style.display = gameState.equipment.armor ? 'block' : 'none';
+        document.getElementById('vis-bag').style.display = gameState.equipment.backpack ? 'block' : 'none';
+        
+        let wVis = document.getElementById('vis-weapon');
+        if(gameState.equipment.mainWeapon) { wVis.style.display = 'block'; wVis.innerText = DATA.weapons[gameState.equipment.mainWeapon].icon; } 
+        else if(gameState.equipment.sniperWeapon) { wVis.style.display = 'block'; wVis.innerText = DATA.weapons[gameState.equipment.sniperWeapon].icon; } 
+        else { wVis.style.display = 'none'; }
+
+        let mw = gameState.equipment.mainWeapon; let sw = gameState.equipment.sniperWeapon;
+        if(mw) {
+            let def = DATA.weapons[mw];
+            document.getElementById('ui-main-w-name').innerText = def.name;
+            document.getElementById('ui-main-w-ammo').innerText = def.ammoType !== "없음" ? `[${def.ammoType}: ${gameState.ammo[def.ammoType]}]` : "";
+        } else { document.getElementById('ui-main-w-name').innerText = "없음"; document.getElementById('ui-main-w-ammo').innerText = ""; }
+
+        if(sw) {
+            let def = DATA.weapons[sw];
+            document.getElementById('ui-sniper-w-name').innerText = def.name;
+            document.getElementById('ui-sniper-w-ammo').innerText = def.ammoType !== "없음" ? `[${def.ammoType}: ${gameState.ammo[def.ammoType]}]` : "";
+        } else { document.getElementById('ui-sniper-w-name').innerText = "없음"; document.getElementById('ui-sniper-w-ammo').innerText = ""; }
+    }
+
+    function calculateStats() {
+        let totalCP = 0; let totalWeight = 0; let currentMaxWeight = 10; let warningMsg = "";
+
+        if (gameState.equipment.backpack) { currentMaxWeight += DATA.backpacks[gameState.equipment.backpack].maxWeightBonus; }
+        if (gameState.equipment.helmet) { totalCP += DATA.armors[gameState.equipment.helmet].cp; }
+        if (gameState.equipment.armor) { totalCP += DATA.armors[gameState.equipment.armor].cp; }
+
+        gameState.ammo = { "권총탄": 0, "샷건탄": 0, "소총탄": 0, "저격탄": 0 };
+        gameState.inventory.forEach(itemId => {
+            let def = getItemDef(itemId);
+            if(def) totalWeight += def.weight;
+            if (DATA.ammoItems[itemId]) {
+                if(DATA.ammoItems[itemId].targetWeapon === "권총") gameState.ammo["권총탄"] += DATA.ammoItems[itemId].amount;
+                if(DATA.ammoItems[itemId].targetWeapon === "샷건") gameState.ammo["샷건탄"] += DATA.ammoItems[itemId].amount;
+                if(DATA.ammoItems[itemId].targetWeapon === "소총") gameState.ammo["소총탄"] += DATA.ammoItems[itemId].amount;
+                if(DATA.ammoItems[itemId].targetWeapon === "저격총") gameState.ammo["저격탄"] += DATA.ammoItems[itemId].amount;
+            }
+        });
+
+        if (gameState.equipment.mainWeapon) {
+            let w = DATA.weapons[gameState.equipment.mainWeapon];
+            if (w.ammoType === "없음" || gameState.ammo[w.ammoType] >= w.ammoCost) totalCP += w.cp;
+            else warningMsg += `※ 주무기(${w.name}) 탄약 부족!<br>`;
+        }
+        if (gameState.equipment.sniperWeapon) {
+            let w = DATA.weapons[gameState.equipment.sniperWeapon];
+            if (w.ammoType === "없음" || gameState.ammo[w.ammoType] >= w.ammoCost) totalCP += w.cp;
+            else warningMsg += `※ 저격총(${w.name}) 탄약 부족!<br>`;
+        }
+
+        gameState.cp = totalCP; gameState.weight = totalWeight; gameState.maxWeight = currentMaxWeight;
+        gameState.isOverweight = (gameState.weight > gameState.maxWeight);
+        if(gameState.enemiesLeft < 0) gameState.enemiesLeft = 0;
+
+        document.getElementById('ui-hp').innerText = `${Math.max(0, gameState.hp)} / ${gameState.maxHp}`;
+        document.getElementById('ui-cp').innerText = gameState.cp;
+        const weightText = `${gameState.weight} / ${gameState.maxWeight}`;
+        document.getElementById('ui-weight').innerText = weightText;
+        document.getElementById('ui-weight-inv').innerText = weightText;
+        
+        let isOver = gameState.isOverweight;
+        document.getElementById('ui-weight').style.color = isOver ? "#c0392b" : "white"; 
+        document.getElementById('ui-weight').style.fontWeight = isOver ? "bold" : "normal";
+        document.getElementById('ui-weight-inv-text').style.color = isOver ? "#c0392b" : "#3e2723";
+        document.getElementById('ui-weight-inv-text').style.fontWeight = isOver ? "bold" : "normal";
+        
+        document.getElementById('ui-area-left').innerText = gameState.currentArea;
+        document.getElementById('ui-enemies-left').innerText = gameState.enemiesLeft;
+        
+        document.getElementById('ui-phase-left').innerText = gameState.phase;
+        document.getElementById('ui-turn-left').innerText = gameState.globalTurn;
+        
+        let pollEl = document.getElementById('ui-pollution-left');
+        if(gameState.pollutedAreas.length > 0) { 
+            pollEl.style.display = 'block'; 
+            pollEl.innerHTML = `<span style="display:block; margin-bottom:5px;">⚠️ 누적 오염 구역</span><div style="text-align:left; padding-left:15px;">${gameState.pollutedAreas.map(a => `▪ ${a}`).join('<br>')}</div>`; 
+        } else { pollEl.style.display = 'none'; }
+
+        let pistolAmmoEl = document.getElementById('ui-ammo-pistol'); if (pistolAmmoEl) pistolAmmoEl.innerText = gameState.ammo["권총탄"];
+        let shotgunAmmoEl = document.getElementById('ui-ammo-shotgun'); if (shotgunAmmoEl) shotgunAmmoEl.innerText = gameState.ammo["샷건탄"];
+        let rifleAmmoEl = document.getElementById('ui-ammo-rifle'); if (rifleAmmoEl) rifleAmmoEl.innerText = gameState.ammo["소총탄"];
+        let sniperAmmoEl = document.getElementById('ui-ammo-sniper'); if (sniperAmmoEl) sniperAmmoEl.innerText = gameState.ammo["저격탄"];
+        document.getElementById('ui-ammo-warning').innerHTML = warningMsg;
+
+        updateInventoryUI(); updateEquipmentVisuals(); checkReadyToProceed(); 
+    }
+
+    function updateInventoryUI() {
+        const slotsDiv = document.getElementById('equipment-slots');
+        const slotNames = { mainWeapon: "주무기", sniperWeapon: "저격총", helmet: "헬멧", armor: "방어구", backpack: "배낭" };
+        let eqHtml = "";
+        for(let key in slotNames) {
+            let itemName = gameState.equipment[key] ? getItemName(gameState.equipment[key]) : "<span style='color:#7f8c8d;'>비어있음</span>";
+            let btn = gameState.equipment[key] ? `<button class="btn-small btn-unequip" onclick="unequipItem('${key}')">해제</button>` : "";
+            eqHtml += `<div class="equip-slot"><span><strong>[${slotNames[key]}]</strong> ${itemName}</span> ${btn}</div>`;
+        }
+        slotsDiv.innerHTML = eqHtml;
+
+        const invList = document.getElementById('inventory-list');
+        if (gameState.inventory.length === 0) { invList.innerHTML = "<div class='inv-item'>빈 가방입니다.</div>"; return; }
+        
+        let counts = {};
+        gameState.inventory.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+        
+        // 정렬 로직 (이름 알파벳 비교로 완벽하게 묶임)
+        let sortedIds = Object.keys(counts).sort((a, b) => {
+            let diff = getSortScore(b) - getSortScore(a);
+            if (diff !== 0) return diff;
+            return a.localeCompare(b);
+        });
+        
+        let invHtml = "";
+        sortedIds.forEach(id => {
+            let name = getItemName(id); let def = getItemDef(id);
+            let countStr = counts[id] > 1 ? ` <span style="color:#d35400;">x${counts[id]}</span>` : "";
+            let equipBtn = (def && def.slot) ? `<button class="btn-small btn-equip" onclick="equipItem('${id}')">장착</button>` : '';
+            invHtml += `<div class="inv-item"><span>- ${name}${countStr}</span><div>${equipBtn} <button class="btn-small btn-discard" onclick="discardItem('${id}')">1개 버리기</button></div></div>`;
+        });
+        invList.innerHTML = invHtml;
+    }
+
+    function equipItem(id) {
+        let def = getItemDef(id); if(!def || !def.slot) return;
+        let idx = gameState.inventory.indexOf(id);
+        if(idx > -1) {
+            if(gameState.equipment[def.slot]) gameState.inventory.push(gameState.equipment[def.slot]);
+            gameState.equipment[def.slot] = id;
+            gameState.inventory.splice(idx, 1);
+            calculateStats();
+        }
+    }
+    function unequipItem(slot) {
+        if(!gameState.equipment[slot]) return;
+        gameState.inventory.push(gameState.equipment[slot]);
+        gameState.equipment[slot] = null;
+        calculateStats();
+    }
+    function discardItem(id) {
+        let idx = gameState.inventory.indexOf(id);
+        if(idx > -1) {
+            gameState.inventory.splice(idx, 1);
+            calculateStats();
+            if(turnState.actionType === 'heal') buildHealMenu(); 
+        }
+    }
+
+    function toggleJournal() {
+        if(gameState.isDead) return;
+        const modal = document.getElementById('journal-modal');
+        modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+        
+        if(modal.style.display === 'flex') {
+            document.getElementById('tab-btn-result').click();
+            calculateStats();
+        }
+    }
+
+    function openTab(tabId, btnElement) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        if(btnElement) btnElement.classList.add('active');
+    }
+
+    function selectAction(type, btnElement) {
+        document.querySelectorAll('.action-select-btn').forEach(el => el.classList.remove('selected'));
+        document.querySelectorAll('.sub-menu').forEach(el => el.style.display = 'none');
+        btnElement.classList.add('selected');
+
+        turnState.actionType = type; turnState.actionData = null; turnState.healQueue = [];
+        let statStr = "▶ 행동 대기 중...";
+
+        if(type === 'move') {
+            document.getElementById('sub-move').style.display = 'block';
+            let currIdx = AREA_LIST.indexOf(gameState.currentArea);
+            let prevArea = AREA_LIST[(currIdx - 1 + 5) % 5]; let nextArea = AREA_LIST[(currIdx + 1) % 5];
+            document.getElementById('move-options').innerHTML = `<button class="sub-btn" onclick="setMoveTarget('${prevArea}', this)">${prevArea}</button> <button class="sub-btn" onclick="setMoveTarget('${nextArea}', this)">${nextArea}</button>`;
+            statStr = "▶ 이동할 지역을 선택하세요.";
+        } else if(type === 'heal') {
+            document.getElementById('sub-heal').style.display = 'block';
+            buildHealMenu();
+            statStr = "▶ 아이템 선택 완료 시 진행 가능";
+            turnState.actionData = true; 
+        } else {
+            const names = { 'farming': '파밍', 'hide': '숨기', 'fight': '교전' };
+            turnState.actionData = true; statStr = `▶ 선택됨: [${names[type]}]`;
+        }
+        updateActionStatus(statStr);
+    }
+
+    function updateActionStatus(msg) {
+        let st = document.getElementById('pending-action-status');
+        st.innerText = msg; st.style.color = (turnState.actionData) ? "#27ae60" : "#c0392b";
+        checkReadyToProceed();
+    }
+
+    function setMoveTarget(area, btn) {
+        document.querySelectorAll('#move-options .sub-btn').forEach(el => el.classList.remove('selected'));
+        btn.classList.add('selected'); turnState.actionData = area;
+        updateActionStatus(`▶ 이동 예약: [${area}]`);
+    }
+
+    function buildHealMenu() {
+        let opts = document.getElementById('heal-options');
+        let counts = {};
+        gameState.inventory.forEach(id => { if(DATA.healingItems[id]) counts[id] = (counts[id] || 0) + 1; });
+        
+        let sortedIds = Object.keys(counts).sort((a, b) => {
+            let diff = getSortScore(b) - getSortScore(a);
+            if (diff !== 0) return diff;
+            return a.localeCompare(b);
+        });
+        
+        let html = "";
+        sortedIds.forEach(id => {
+            let usedCount = turnState.healQueue.filter(x => x === id).length;
+            html += `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; padding:5px; background:#fff; border:1px solid #ccc; border-radius:4px;">
+                <span>${DATA.healingItems[id].name} (보유: ${counts[id]})</span>
+                <div>
+                    <button class="btn-small btn-discard" onclick="adjHeal('${id}', -1, ${counts[id]})">-</button>
+                    <span style="display:inline-block; width:20px; text-align:center; font-weight:bold;">${usedCount}</span>
+                    <button class="btn-small btn-equip" onclick="adjHeal('${id}', 1, ${counts[id]})">+</button>
+                </div>
+            </div>`;
+        });
+        if(sortedIds.length === 0) html = "가진 회복 아이템이 없습니다.";
+        opts.innerHTML = html;
+    }
+
+    window.adjHeal = function(id, delta, maxCount) {
+        let current = turnState.healQueue.filter(x => x === id).length;
+        if(delta > 0 && current < maxCount) turnState.healQueue.push(id);
+        if(delta < 0 && current > 0) { let idx = turnState.healQueue.indexOf(id); if(idx > -1) turnState.healQueue.splice(idx, 1); }
+        buildHealMenu();
+        updateActionStatus(`▶ 회복 아이템 ${turnState.healQueue.length}개 예약됨`);
+    };
+
+    function selectEventChoice(choiceId, btnElement) {
+        document.querySelectorAll('.event-choice-btn').forEach(el => {
+            el.classList.remove('selected', 'confirmed');
+            el.disabled = true; 
+        });
+        
+        if (choiceId === "ack") {
+            btnElement.classList.add('confirmed', 'ack-btn');
+            btnElement.innerText = "✓ 확인 완료";
+            turnState.eventChoice = "ack";
+        } else {
+            btnElement.classList.add('selected');
+            btnElement.innerHTML = `✓ ${turnState.currentEvent.choices[choiceId].text} (선택됨)`;
+            turnState.eventChoice = turnState.currentEvent.choices[choiceId];
+        }
+        
+        document.getElementById('pending-event-status').innerText = "▶ 이벤트 확인 완료";
+        document.getElementById('pending-event-status').style.color = "#27ae60";
+        checkReadyToProceed();
+    }
+
+    function checkReadyToProceed() {
+        let btn = document.getElementById('proceed-btn');
+        if(gameState.isOverweight) { btn.disabled = true; btn.innerText = "무게 초과! (가방 정리 필요)"; btn.classList.add("error-btn"); return; }
+        btn.classList.remove("error-btn");
+        let actionReady = (turnState.actionType !== null && turnState.actionData !== null);
+        let eventReady = (!turnState.currentEvent) || (turnState.currentEvent && turnState.eventChoice);
+        if(actionReady && eventReady) { btn.disabled = false; btn.innerText = "진행 (다음 턴)"; } 
+        else { btn.disabled = true; btn.innerText = "조건 미달성"; }
+    }
+
+    function getEventResultText(ev) {
+        let res = [];
+        if(ev.e1 === "hp") res.push(`체력 ${Math.abs(ev.v1)} 감소`);
+        if(ev.e1 === "item") res.push(`[${getItemName(ev.v1)}] 획득`);
+        if(ev.e2 === "item") res.push(`[${getItemName(ev.v2)}] 획득`);
+        if(ev.e1 === "survivor") res.push(`생존자 ${ev.v1}명 사망`);
+        if(ev.e1 === "loseItemType") res.push(`소지품 중 일부 분실`);
+        return res.length > 0 ? `<div style="margin-top:10px; padding:10px; background:#fff; color:#27ae60; font-size:14px; border-radius:5px;">✓ 결과: ${res.join(", ")}</div>` : "";
+    }
+
+    function prepareNextTurn() {
+        turnState.actionType = null; turnState.actionData = null; turnState.healQueue = [];
+        turnState.currentEvent = null; turnState.eventChoice = null; turnState.tempMod = { enc: 0, cp: 0, loot: 0, encMove: 0 };
+        
+        document.querySelectorAll('.action-select-btn').forEach(el => el.classList.remove('selected'));
+        document.querySelectorAll('.sub-menu').forEach(el => el.style.display = 'none');
+        updateActionStatus("▶ 행동 미선택");
+        document.getElementById('pending-event-status').innerText = "▶ 이벤트 없음";
+        document.getElementById('pending-event-status').style.color = "#7f8c8d";
+        document.getElementById('tab-btn-event').classList.remove('highlight');
+        
+        let validEvents = DATA.events.filter(e => { return (gameState.phase >= e.phaseMin && gameState.phase <= e.phaseMax) && (e.area === "전체" || e.area === gameState.currentArea); });
+        
+        let allowEvent = true;
+        if (gameState.phase === 1 && (gameState.turnInPhase === 1 || gameState.turnInPhase === 2)) allowEvent = false;
+
+        if(allowEvent && validEvents.length > 0 && Math.random() < 0.6) {
+            let totalWeight = validEvents.reduce((sum, e) => sum + e.weight, 0);
+            let rand = Math.random() * totalWeight; let currentW = 0;
+            for(let e of validEvents) { currentW += e.weight; if(rand <= currentW) { turnState.currentEvent = e; break; } }
+        }
+
+        const evDesc = document.getElementById('event-description');
+        const evChoices = document.getElementById('event-choices');
+        
+        if(turnState.currentEvent) {
+            let ev = turnState.currentEvent;
+            document.getElementById('tab-btn-event').classList.add('highlight');
+            document.getElementById('event-title').innerText = "⚠️ 상황 발생";
+            
+            document.getElementById('pending-event-status').innerText = "▶ 이벤트 확인 필요";
+            document.getElementById('pending-event-status').style.color = "#e67e22";
+
+            if(ev.type === "choice") {
+                evDesc.style.display = 'block'; evDesc.innerHTML = ev.name;
+                let btnHtml = "";
+                ev.choices.forEach((c, idx) => { btnHtml += `<button class="event-choice-btn" onclick="selectEventChoice(${idx}, this)">${c.text}</button>`; });
+                evChoices.innerHTML = btnHtml;
+            } else {
+                evDesc.style.display = 'block'; evDesc.innerHTML = ev.name + getEventResultText(ev);
+                evChoices.innerHTML = `<button class="event-choice-btn ack-btn" onclick="selectEventChoice('ack', this)">확인했습니다</button>`;
+            }
+        } else {
+            document.getElementById('event-title').innerText = "현재 발생한 이벤트가 없습니다.";
+            evDesc.style.display = 'none'; evChoices.innerHTML = "";
+        }
+        checkReadyToProceed();
+    }
+
+    function executeTurn() {
+        if (gameState.isOverweight) return;
+        let htmlLog = ""; let mainOutcomeStr = "";
+
+        if (turnState.currentEvent) {
+            let ev = turnState.currentEvent;
+            if(ev.type === "imm") {
+                htmlLog += `<div class="log-box log-event"><strong>[상황]</strong> ${ev.name}</div>`;
+                if(ev.e1 === "hp") gameState.hp += ev.v1;
+                if(ev.e1 === "item") acquireItem(ev.v1);
+                if(ev.e2 === "item") acquireItem(ev.v2);
+                if(ev.e1 === "survivor") gameState.enemiesLeft -= ev.v1;
+                if(ev.e1 === "loseItemType") {
+                    let idx = gameState.inventory.findIndex(id => DATA[ev.v1] && DATA[ev.v1][id]);
+                    if(idx !== -1) gameState.inventory.splice(idx, 1);
+                }
+                mainOutcomeStr = "상황 발생!";
+            } else if(ev.type === "choice" && turnState.eventChoice !== "ack") {
+                let c = turnState.eventChoice;
+                htmlLog += `<div class="log-box log-event"><strong>[결단]</strong> '${c.text}'을(를) 선택했습니다.</div>`;
+                if(c.encMod) turnState.tempMod.enc += c.encMod;
+                if(c.encModMove) turnState.tempMod.encMove += c.encModMove;
+                if(c.cpBonus) turnState.tempMod.cp += c.cpBonus;
+                if(c.extraLoot) turnState.tempMod.loot += c.extraLoot;
+                if(c.hpMod) gameState.hp += c.hpMod;
+                if(c.items) c.items.forEach(i => acquireItem(i));
+                mainOutcomeStr = "상황 발생!";
+            }
+        }
+
+        let baseRate = DATA.areas[gameState.currentArea].encounterRateBase;
+        let modifier = turnState.tempMod.enc; 
+        if(turnState.actionType === 'farming') modifier += 0.2;
+        if(turnState.actionType === 'move') modifier += (0.1 + turnState.tempMod.encMove);
+        if(turnState.actionType === 'hide') modifier -= 0.3;
+        if(turnState.actionType === 'fight') modifier += 0.5;
+
+        if(gameState.pollutedAreas.includes(gameState.currentArea)) modifier -= 0.5;
+
+        let finalRate = baseRate + modifier;
+        if (gameState.phase === 1 && gameState.turnInPhase <= 2) finalRate = 0;
+        if (gameState.phase === 5 && gameState.turnInPhase === 5) finalRate = 1.0;
+
+        let combatResult = { happened: false };
+        if (Math.random() < finalRate) {
+            let poolKey = `p${gameState.phase}`;
+            if (gameState.phase === 1 && gameState.turnInPhase === 3) poolKey = "p1_t3";
+            if (gameState.phase === 5 && gameState.turnInPhase === 5) poolKey = "p5_t5";
+            let pool = DATA.encounterPools[poolKey];
+            if (pool) {
+                let totalW = pool.reduce((s, e) => s + e.weight, 0);
+                let rand = Math.random() * totalW; let cW = 0; let eId = pool[0].id; 
+                for (let e of pool) { cW += e.weight; if (rand <= cW) { eId = e.id; break; } }
+                
+                let enemy = DATA.enemies[eId];
+                let enemyEffectiveCP = enemy.cp * 1.5; 
+                let myCP = gameState.cp + turnState.tempMod.cp;
+                let winProb = (myCP === 0 && enemyEffectiveCP === 0) ? 0.5 : myCP / (myCP + enemyEffectiveCP);
+                if (turnState.actionType === 'hide') winProb += 0.1; 
+                
+                let isWin = Math.random() < winProb;
+                let dmg = isWin ? Math.floor(Math.random() * 10) + 5 : Math.floor(Math.random() * 30) + 20;
+                gameState.hp -= dmg;
+                combatResult = { happened: true, isWin: isWin, damage: dmg, enemyId: eId };
+                if(isWin) gameState.enemiesLeft -= 1; 
+            }
+        }
+
+        let canProceedAction = true;
+        if (combatResult.happened) {
+            if (combatResult.isWin) { 
+                let dropText = "";
+                let eData = DATA.enemies[combatResult.enemyId];
+                if(eData && eData.drops && eData.drops.length > 0) {
+                    let dCount = Math.floor(Math.random() * 2) + 1;
+                    let dIds = [];
+                    for(let i=0; i<dCount; i++) {
+                        let dItem = eData.drops[Math.floor(Math.random() * eData.drops.length)];
+                        dIds.push(dItem); acquireItem(dItem);
+                    }
+                    dropText = `<br><span class="text-success">[전리품 획득]</span> ${dIds.map(id=>getItemName(id)).join(", ")}`;
+                }
+                htmlLog += `<div class="log-box log-combat"><span class="text-success">[교전 승리]</span> 적과 마주쳐 승리했으나 피해를 입었습니다.${dropText}</div>`; 
+                mainOutcomeStr = "교전 승리!"; 
+            } 
+            else { htmlLog += `<div class="log-box log-combat"><span class="text-danger">[교전 패배]</span> 적과 마주쳐 패배하고 심각한 피해를 입었습니다.</div>`; canProceedAction = false; mainOutcomeStr = "교전 패배!"; }
+        }
+        if (gameState.hp <= 0) { processDeath(htmlLog); return; }
+
+        if (canProceedAction) {
+            switch(turnState.actionType) {
+                case 'farming': 
+                    let currentPool = gameState.areaPools[gameState.currentArea];
+                    let drawCount = Math.floor(Math.random() * 2) + 3 + turnState.tempMod.loot; 
+                    let drawnItems = [];
+                    for(let i=0; i<drawCount; i++) {
+                        if(currentPool.length === 0) break;
+                        let randIdx = Math.floor(Math.random() * currentPool.length);
+                        drawnItems.push(currentPool.splice(randIdx, 1)[0]);
+                    }
+                    if(drawnItems.length > 0) {
+                        drawnItems.forEach(id => acquireItem(id));
+                        htmlLog += `<div class="log-box log-action"><span class="text-success">[파밍 완료]</span> 주변을 뒤져 물건들을 챙겼습니다.</div>`;
+                        if(!mainOutcomeStr) mainOutcomeStr = "아이템 획득!";
+                    } else { htmlLog += `<div class="log-box log-action">이 지역은 샅샅이 뒤져서 더 이상 쓸만한 물건이 없습니다.</div>`; if(!mainOutcomeStr) mainOutcomeStr = "빈손..."; }
+                    break;
+                case 'move': 
+                    gameState.currentArea = turnState.actionData;
+                    htmlLog += `<div class="log-box log-action">조심스럽게 [${gameState.currentArea}] 지역으로 이동을 완료했습니다.</div>`; 
+                    updateBackground();
+                    if(!mainOutcomeStr) mainOutcomeStr = "이동 완료!"; break;
+                case 'hide': htmlLog += `<div class="log-box log-action">숨죽인 채 주변을 경계하며 무사히 턴을 보냈습니다.</div>`; if(!mainOutcomeStr) mainOutcomeStr = "은신 성공!"; break;
+                case 'fight': if(!combatResult.happened) { htmlLog += `<div class="log-box log-action">적극적으로 주변을 수색했으나, 마주친 적은 없었습니다.</div>`; if(!mainOutcomeStr) mainOutcomeStr = "수색 완료!"; } break;
+                case 'heal': 
+                    if(turnState.healQueue.length > 0) {
+                        turnState.healQueue.forEach(id => {
+                            gameState.hp = Math.min(gameState.maxHp, gameState.hp + DATA.healingItems[id].heal);
+                            let idx = gameState.inventory.indexOf(id); if(idx > -1) gameState.inventory.splice(idx, 1);
+                        });
+                        htmlLog += `<div class="log-box log-action">선택한 의료 아이템을 사용하여 상처를 치료했습니다.</div>`; 
+                        if(!mainOutcomeStr) mainOutcomeStr = "체력 회복!";
+                    } else { htmlLog += `<div class="log-box log-action">아무런 아이템도 사용하지 않고 턴을 보냈습니다.</div>`; if(!mainOutcomeStr) mainOutcomeStr = "턴 종료"; }
+                    break;
+            }
+        }
+
+        if(gameState.pollutedAreas.includes(gameState.currentArea)) {
+            let dmgValues = { 2: 5, 3: 10, 4: 20, 5: 40 };
+            let pDmg = dmgValues[gameState.phase] || 0;
+            if(pDmg > 0) {
+                gameState.hp -= pDmg;
+                htmlLog += `<div class="log-box text-danger" style="border-left: 5px solid #8e44ad; background: rgba(142, 68, 173, 0.1);">오염 구역의 독성 가스로 인해 ${pDmg}의 지속 피해를 입었습니다!</div>`;
+                if (gameState.hp <= 0) { processDeath(htmlLog); return; }
+            }
+        }
+
+        gameState.globalTurn++; gameState.turnInPhase++;
+        let maxTurnForPhase = DATA.phases[gameState.phase].maxTurn;
+        if (gameState.turnInPhase > maxTurnForPhase) {
+            gameState.phase++; gameState.turnInPhase = 1;
+            
+            let availableAreas = AREA_LIST.filter(a => !gameState.pollutedAreas.includes(a));
+            if(availableAreas.length === 0) availableAreas = AREA_LIST; 
+            let newPolluted = availableAreas[Math.floor(Math.random() * availableAreas.length)];
+            gameState.pollutedAreas.push(newPolluted);
+            
+            htmlLog += `<div class="log-box log-action text-danger">⚠️ [페이즈 전환] 다음 페이즈에 진입했습니다. [${newPolluted}] 지역이 새롭게 오염되었습니다!</div>`;
+            mainOutcomeStr = "페이즈 전환!";
+        }
+
+        document.getElementById('result-log').innerHTML = htmlLog;
+        document.getElementById('main-outcome').innerText = mainOutcomeStr;
+        document.getElementById('main-outcome').style.color = (mainOutcomeStr.includes("패배") || mainOutcomeStr.includes("사망")) ? "#c0392b" : "#e67e22";
+        
+        calculateStats(); prepareNextTurn(); 
+        
+        document.getElementById('journal-modal').style.display = 'none'; 
+    }
+
+    function processDeath(htmlLog) {
+        gameState.isDead = true; 
+        htmlLog += `<div class="log-box log-action text-danger" style="border:none; background:none;">체력이 0이 되어 사망했습니다...</div>`;
+        document.getElementById('result-log').innerHTML = htmlLog; 
+        document.getElementById('main-outcome').innerText = "사망...";
+        document.getElementById('main-outcome').style.color = "#c0392b"; 
+        document.getElementById('journal-modal').style.display = 'none';
+        
+        document.getElementById('death-reason').innerHTML = htmlLog; 
+        
+        document.getElementById('capybara-sprite').innerText = '😵'; 
+        document.getElementById('game-over-screen').style.display = 'flex';
+        calculateStats();
+    }
+
+    function restartGame() { initGame(); }
+
+    initGame();
+</script>
+</body>
+</html>
