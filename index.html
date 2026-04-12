@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>카피바라 서바이벌</title>
+    <title>카피바라 로얄</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; }
         body { background-color: #2c3e50; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; position: fixed; width: 100%; }
@@ -33,18 +33,28 @@
         #vis-bag { top: 90px; right: -10px; font-size: 50px;}
         #vis-armor { top: 150px; left: 80px; }
 
-        /* 게임 오버 스크린 */
-        #game-over-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 50; flex-direction: column; justify-content: center; align-items: center; color: #e74c3c; }
-        #game-over-screen h1 { font-size: 50px; margin-bottom: 20px; text-shadow: 2px 2px 5px #000; text-align: center; }
-        #death-reason { margin-bottom: 30px; font-size: 16px; color: #ecf0f1; text-align: left; width: 80%; max-width: 600px; line-height: 1.5; background: rgba(0,0,0,0.7); padding: 20px; border-radius: 10px; border: 2px solid #c0392b; overflow-y: auto; max-height: 300px; }
-        #btn-restart { padding: 15px 40px; font-size: 20px; font-weight: bold; cursor: pointer; background-color: #c0392b; color: white; border: 2px solid #fff; border-radius: 10px; transition: 0.3s; }
-        #btn-restart:hover { background-color: #e74c3c; transform: scale(1.05); }
+        /* 게임 오버 & 클리어 스크린 */
+        .end-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 50; flex-direction: column; justify-content: center; align-items: center; }
+        #game-over-screen { color: #e74c3c; }
+        #game-clear-screen { color: #f1c40f; }
+        .end-screen h1 { font-size: 50px; margin-bottom: 10px; text-shadow: 2px 2px 5px #000; text-align: center; }
+        .end-screen h2 { font-size: 24px; margin-bottom: 20px; color: #ecf0f1; }
+        
+        .end-reason { margin-bottom: 30px; font-size: 16px; color: #ecf0f1; text-align: left; width: 80%; max-width: 600px; line-height: 1.5; background: rgba(0,0,0,0.7); padding: 20px; border-radius: 10px; overflow-y: auto; max-height: 300px; }
+        #game-over-screen .end-reason { border: 2px solid #c0392b; }
+        #game-clear-screen .end-reason { border: 2px solid #f1c40f; }
+        
+        .btn-restart { padding: 15px 40px; font-size: 20px; font-weight: bold; cursor: pointer; color: white; border: 2px solid #fff; border-radius: 10px; transition: 0.3s; }
+        #game-over-screen .btn-restart { background-color: #c0392b; }
+        #game-over-screen .btn-restart:hover { background-color: #e74c3c; transform: scale(1.05); }
+        #game-clear-screen .btn-restart { background-color: #d35400; }
+        #game-clear-screen .btn-restart:hover { background-color: #e67e22; transform: scale(1.05); }
 
         /* 버튼 및 모달 UI */
         #journal-btn { position: absolute; bottom: 30px; right: 30px; width: 80px; height: 100px; background-color: #f1c40f; border: 2px solid #e67e22; border-radius: 5px 15px 15px 5px; cursor: pointer; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 18px; color: #d35400; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); transition: transform 0.2s; z-index: 20; }
         #journal-btn:hover { transform: translateY(-5px) rotate(5deg); }
 
-        #journal-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 750px; height: 550px; max-width: 95%; max-height: 90%; background-color: #fcf3cf; border-radius: 10px; border: 2px solid #b7950b; box-shadow: 0 0 30px rgba(0,0,0,0.9); flex-direction: column; z-index: 100; }
+        #journal-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 750px; height: 550px; max-width: 95%; max-height: 95%; background-color: #fcf3cf; border-radius: 10px; border: 2px solid #b7950b; box-shadow: 0 0 30px rgba(0,0,0,0.9); flex-direction: column; z-index: 100; }
         
         #close-btn { position: absolute; top: -15px; right: -15px; width: 40px; height: 40px; border-radius: 50%; background-color: #c0392b; color: white; font-size: 20px; font-weight: bold; cursor: pointer; border: 2px solid #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 101; transition: 0.2s; }
         #close-btn:hover { background-color: #e74c3c; transform: scale(1.1); }
@@ -58,7 +68,7 @@
 
         .badge-new { display: none; position: absolute; top: 5px; right: 10px; background-color: #e74c3c; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold; box-shadow: 0 0 5px rgba(0,0,0,0.5); animation: pulse 1.5s infinite;}
 
-        .tab-content { display: none; padding: 25px; flex-grow: 1; overflow-y: auto; color: #3e2723; text-align: left; }
+        .tab-content { display: none; padding: 20px; flex-grow: 1; overflow-y: auto; color: #3e2723; text-align: left; }
         .tab-content.active { display: block; }
 
         .action-select-btn, .event-choice-btn { display: block; width: 100%; padding: 15px; margin-bottom: 5px; background-color: #fff; border: 1px solid #b7950b; border-radius: 5px; text-align: left; cursor: pointer; font-size: 16px; transition: 0.2s; font-weight: bold; }
@@ -73,9 +83,8 @@
         .ack-btn.selected { background-color: #f1c40f !important; border-color: #f39c12 !important; color: #fff !important; }
 
         .sub-menu { display: none; padding: 10px; background-color: rgba(0,0,0,0.05); border-left: 3px solid #e67e22; margin-bottom: 10px; }
-        .sub-btn { padding: 10px 15px; margin-right: 5px; margin-bottom: 5px; cursor: pointer; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; }
+        .sub-btn { padding: 8px 15px; margin-right: 5px; margin-bottom: 5px; cursor: pointer; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; }
         .sub-btn.selected { background-color: #3498db; color: white; border-color: #2980b9; }
-        .heal-item-label { display: block; margin-bottom: 5px; cursor: pointer; font-size: 15px; }
 
         #proceed-area { padding: 15px; border-top: 2px dashed #b7950b; display: flex; justify-content: space-between; align-items: center; background: #fcf3cf; border-radius: 0 0 10px 10px;}
         #pending-status-box { display: flex; flex-direction: column; gap: 5px; }
@@ -102,33 +111,38 @@
         .btn-unequip { background-color: #e67e22; }
         .btn-discard { background-color: #c0392b; }
 
-        /* 모바일 대응 최적화 */
+        /* 모바일 대응 (스크롤 압축 및 초소형화) */
         @media screen and (max-width: 850px) {
             #game-container { flex-direction: column; width: 100vw; height: 100vh; max-height: none; border: none; border-radius: 0; }
-            #left-status-panel { width: 100%; height: auto; max-height: 30vh; border-right: none; border-bottom: 3px solid #34495e; flex-direction: row; flex-wrap: wrap; align-items: flex-start; padding: 10px; }
-            .panel-section { width: 48%; margin-bottom: 5px; }
-            .panel-section h3 { font-size: 14px; margin-top: 0;}
-            .status-row { font-size: 12px; }
+            #left-status-panel { width: 100%; height: auto; max-height: 25vh; border-right: none; border-bottom: 3px solid #34495e; flex-direction: row; flex-wrap: wrap; align-items: flex-start; padding: 8px; gap: 4px; }
+            .panel-section { width: 48%; margin-bottom: 2px; }
+            .panel-section h3 { font-size: 12px; margin-top: 2px; padding-bottom: 2px;}
+            .status-row { font-size: 11px; margin-bottom: 1px; }
+            .equipped-weapon-box { padding: 4px; margin-bottom: 2px; }
+            .equipped-weapon-title { font-size: 10px; }
+            .equipped-weapon-name { font-size: 12px; margin: 1px 0; }
+            .equipped-weapon-ammo { font-size: 10px; }
             
-            #main-view { width: 100%; flex-grow: 1; height: 70vh; }
-            #character-area { transform: translate(-50%, -50%) scale(0.7); top: 40%; }
-            #journal-btn { bottom: 15px; right: 15px; width: 65px; height: 80px; font-size: 15px; }
+            #main-view { width: 100%; flex-grow: 1; height: 75vh; }
+            #character-area { transform: translate(-50%, -50%) scale(0.6); top: 40%; }
+            #journal-btn { bottom: 10px; right: 10px; width: 60px; height: 70px; font-size: 14px; }
             
-            #journal-modal { width: 95%; height: 92%; }
-            #close-btn { top: 5px; right: 5px; width: 35px; height: 35px; font-size: 16px; border-radius: 5px; } /* 모바일에서는 잘리지 않게 안쪽으로 */
+            #journal-modal { width: 98%; height: 96%; border-radius: 5px; }
+            #close-btn { top: 5px; right: 5px; width: 30px; height: 30px; font-size: 14px; border-radius: 5px; } 
             
-            .tab-btn { font-size: 13px; padding: 12px 5px; }
-            .tab-content { padding: 15px; }
+            .tab-btn { font-size: 13px; padding: 10px 2px; }
+            .tab-content { padding: 12px; }
             
             .inv-container { flex-direction: column; display: block; }
-            .inv-column { width: 100%; margin-bottom: 15px; overflow: visible; height: auto; }
+            .inv-column { width: 100%; margin-bottom: 10px; overflow: visible; height: auto; padding: 10px; }
             
-            #proceed-area { flex-direction: column; gap: 10px; text-align: center; padding: 10px; }
-            #proceed-btn { width: 100%; padding: 15px; font-size: 16px; }
-            .action-select-btn, .event-choice-btn { padding: 12px; font-size: 14px; }
+            #proceed-area { flex-direction: row; gap: 5px; text-align: left; padding: 10px; }
+            #proceed-btn { width: auto; flex-grow: 1; padding: 12px; font-size: 16px; }
+            .action-select-btn, .event-choice-btn { padding: 10px; font-size: 14px; margin-bottom: 4px; }
             
-            #game-over-screen h1 { font-size: 40px; }
-            #death-reason { font-size: 14px; padding: 15px; width: 90%; }
+            .end-screen h1 { font-size: 35px; }
+            .end-screen h2 { font-size: 18px; }
+            .end-reason { font-size: 13px; padding: 12px; width: 95%; max-height: 200px; }
         }
     </style>
 </head>
@@ -137,20 +151,20 @@
 <div id="game-container">
     <div id="left-status-panel">
         <div class="panel-section">
-            <div style="text-align: center; font-size: 18px; font-weight: bold; color: #f1c40f; margin-bottom: 5px;">페이즈 <span id="ui-phase-left">1</span></div>
-            <div style="text-align: center; font-size: 13px; color: #bdc3c7; border-bottom: 1px solid #7f8c8d; padding-bottom: 10px; margin-bottom: 10px;">턴 <span id="ui-turn-left">1</span></div>
+            <div style="text-align: center; font-size: 16px; font-weight: bold; color: #f1c40f; margin-bottom: 2px;">페이즈 <span id="ui-phase-left">1</span></div>
+            <div style="text-align: center; font-size: 12px; color: #bdc3c7; border-bottom: 1px solid #7f8c8d; padding-bottom: 5px; margin-bottom: 5px;">턴 <span id="ui-turn-left">1</span></div>
             
             <h3>📊 상태</h3>
             <div class="status-row"><span>❤️ HP</span> <span id="ui-hp">100 / 100</span></div>
             <div class="status-row"><span>⚔️ CP</span> <span id="ui-cp" style="color: #f1c40f; font-weight: bold;">0</span></div>
             <div class="status-row"><span>🎒 무게</span> <span id="ui-weight">0 / 10</span></div>
-            <div style="font-size: 11px; color: #e74c3c; margin-bottom: 5px;" id="ui-ammo-warning"></div>
+            <div style="font-size: 11px; color: #e74c3c; margin-bottom: 2px;" id="ui-ammo-warning"></div>
             
             <div id="ui-pollution-left">⚠️ 누적 오염 구역<br></div>
         </div>
 
         <div class="panel-section">
-            <h3>🔫 장착 무기</h3>
+            <h3>🔫 장비</h3>
             <div class="equipped-weapon-box">
                 <div class="equipped-weapon-title">주무기</div>
                 <div class="equipped-weapon-name" id="ui-main-w-name">없음</div>
@@ -162,19 +176,27 @@
                 <div class="equipped-weapon-ammo" id="ui-sniper-w-ammo"></div>
             </div>
 
-            <div style="border-top: 1px dashed #7f8c8d; padding-top: 10px; margin-top: 10px;">
-                <div style="font-size: 13px; color: #bdc3c7;">📍 현재 위치: <span style="color: #3498db; font-weight: bold;" id="ui-area-left">주거 단지</span></div>
-                <div style="font-size: 13px; color: #bdc3c7; margin-top: 5px;">생존자 수 (적)</div>
-                <div style="font-size: 22px; font-weight: bold; color: #e74c3c; text-align: left;"><span id="ui-enemies-left">100</span> / 100</div>
+            <div style="border-top: 1px dashed #7f8c8d; padding-top: 5px; margin-top: 5px;">
+                <div style="font-size: 12px; color: #bdc3c7;">📍 위치: <span style="color: #3498db; font-weight: bold;" id="ui-area-left">주거 단지</span></div>
+                <div style="font-size: 12px; color: #bdc3c7; margin-top: 2px;">생존자 수 (적)</div>
+                <div style="font-size: 18px; font-weight: bold; color: #e74c3c; text-align: left;"><span id="ui-enemies-left">100</span> / 100</div>
             </div>
         </div>
     </div>
 
     <div id="main-view">
-        <div id="game-over-screen">
+        <div id="game-over-screen" class="end-screen">
             <h1>YOU DIED</h1>
-            <div id="death-reason"></div>
-            <button id="btn-restart" onclick="restartGame()">다시 시작</button>
+            <h2>생존에 실패했습니다.</h2>
+            <div id="death-reason" class="end-reason"></div>
+            <button class="btn-restart" onclick="restartGame()">다시 시작</button>
+        </div>
+
+        <div id="game-clear-screen" class="end-screen">
+            <h1>VICTORY</h1>
+            <h2>최후의 1인이 되었습니다!</h2>
+            <div id="clear-reason" class="end-reason"></div>
+            <button class="btn-restart" onclick="restartGame()">새로운 생존 시작</button>
         </div>
 
         <div id="character-area">
@@ -198,7 +220,7 @@
             </div>
 
             <div id="tab-result" class="tab-content active">
-                <h1 id="main-outcome" style="text-align: center; color: #e67e22; margin-bottom: 20px; font-size: 32px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">새로운 아침</h1>
+                <h1 id="main-outcome" style="text-align: center; color: #e67e22; margin-bottom: 20px; font-size: 28px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">새로운 아침</h1>
                 <div id="result-log"></div>
             </div>
 
@@ -208,21 +230,21 @@
                 <button class="action-select-btn" id="btn-act-farming" onclick="selectAction('farming', this)">🔍 파밍</button>
                 <button class="action-select-btn" id="btn-act-move" onclick="selectAction('move', this)">🚶 이동</button>
                 <div id="sub-move" class="sub-menu">
-                    <p style="font-size: 13px; margin-bottom: 5px; color:#555;">어디로 이동하시겠습니까?</p>
+                    <p style="font-size: 12px; margin-bottom: 5px; color:#555;">어디로 이동하시겠습니까?</p>
                     <div id="move-options"></div>
                 </div>
                 <button class="action-select-btn" id="btn-act-hide" onclick="selectAction('hide', this)">🥷 숨기</button>
                 <button class="action-select-btn" id="btn-act-fight" onclick="selectAction('fight', this)">🔫 교전</button>
                 <button class="action-select-btn" id="btn-act-heal" onclick="selectAction('heal', this)">💊 회복</button>
                 <div id="sub-heal" class="sub-menu">
-                    <p style="font-size: 13px; margin-bottom: 5px; color:#555;">어떤 아이템을 사용하시겠습니까?</p>
+                    <p style="font-size: 12px; margin-bottom: 5px; color:#555;">어떤 아이템을 사용하시겠습니까?</p>
                     <div id="heal-options"></div>
                 </div>
             </div>
 
             <div id="tab-event" class="tab-content">
                 <h3 id="event-title">현재 발생한 이벤트가 없습니다.</h3>
-                <div id="event-description" style="margin: 15px 0; padding: 15px; background-color: rgba(0,0,0,0.05); border-left: 4px solid #c0392b; font-size: 16px; font-weight: bold; line-height: 1.5; display: none;"></div>
+                <div id="event-description" style="margin: 15px 0; padding: 15px; background-color: rgba(0,0,0,0.05); border-left: 4px solid #c0392b; font-size: 14px; font-weight: bold; line-height: 1.5; display: none;"></div>
                 <div id="event-choices"></div>
             </div>
 
@@ -241,8 +263,8 @@
 
             <div id="proceed-area">
                 <div id="pending-status-box">
-                    <span id="pending-event-status" style="font-size: 13px; color: #e67e22;">▶ 이벤트 대기 중...</span>
-                    <span id="pending-action-status" style="font-size: 13px; color: #3498db;">▶ 행동 미선택</span>
+                    <span id="pending-event-status" style="font-size: 12px; color: #e67e22;">▶ 이벤트 대기 중...</span>
+                    <span id="pending-action-status" style="font-size: 12px; color: #3498db;">▶ 행동 미선택</span>
                 </div>
                 <button id="proceed-btn" onclick="executeTurn()" disabled>진행 (다음 턴)</button>
             </div>
@@ -360,6 +382,7 @@
         
         document.getElementById('capybara-sprite').innerText = '🐹';
         document.getElementById('game-over-screen').style.display = 'none';
+        document.getElementById('game-clear-screen').style.display = 'none';
         document.getElementById('journal-modal').style.display = 'none';
         document.getElementById('ui-pollution-left').style.display = 'none';
         
@@ -503,7 +526,6 @@
         let counts = {};
         gameState.inventory.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
         
-        // 정렬 로직 (이름 알파벳 비교로 완벽하게 묶임)
         let sortedIds = Object.keys(counts).sort((a, b) => {
             let diff = getSortScore(b) - getSortScore(a);
             if (diff !== 0) return diff;
@@ -767,13 +789,15 @@
 
         let finalRate = baseRate + modifier;
         if (gameState.phase === 1 && gameState.turnInPhase <= 2) finalRate = 0;
-        if (gameState.phase === 5 && gameState.turnInPhase === 5) finalRate = 1.0;
+        
+        let isFinalBattle = (gameState.phase === 5 && gameState.turnInPhase === 5);
+        if (isFinalBattle) finalRate = 1.0;
 
         let combatResult = { happened: false };
         if (Math.random() < finalRate) {
             let poolKey = `p${gameState.phase}`;
             if (gameState.phase === 1 && gameState.turnInPhase === 3) poolKey = "p1_t3";
-            if (gameState.phase === 5 && gameState.turnInPhase === 5) poolKey = "p5_t5";
+            if (isFinalBattle) poolKey = "p5_t5";
             let pool = DATA.encounterPools[poolKey];
             if (pool) {
                 let totalW = pool.reduce((s, e) => s + e.weight, 0);
@@ -808,10 +832,25 @@
                     }
                     dropText = `<br><span class="text-success">[전리품 획득]</span> ${dIds.map(id=>getItemName(id)).join(", ")}`;
                 }
-                htmlLog += `<div class="log-box log-combat"><span class="text-success">[교전 승리]</span> 적과 마주쳐 승리했으나 피해를 입었습니다.${dropText}</div>`; 
-                mainOutcomeStr = "교전 승리!"; 
+                
+                if(isFinalBattle) {
+                    htmlLog += `<div class="log-box log-combat"><span class="text-success">[최종 교전 승리]</span> 마지막 적을 쓰러뜨렸습니다!</div>`; 
+                    processVictory(htmlLog);
+                    return;
+                } else {
+                    htmlLog += `<div class="log-box log-combat"><span class="text-success">[교전 승리]</span> 적과 마주쳐 승리했으나 피해를 입었습니다.${dropText}</div>`; 
+                    mainOutcomeStr = "교전 승리!"; 
+                }
             } 
-            else { htmlLog += `<div class="log-box log-combat"><span class="text-danger">[교전 패배]</span> 적과 마주쳐 패배하고 심각한 피해를 입었습니다.</div>`; canProceedAction = false; mainOutcomeStr = "교전 패배!"; }
+            else { 
+                if(isFinalBattle) {
+                    gameState.hp = 0; 
+                    htmlLog += `<div class="log-box log-combat"><span class="text-danger">[최종 교전 패배]</span> 최후의 적에게 치명상을 입었습니다.</div>`; 
+                } else {
+                    htmlLog += `<div class="log-box log-combat"><span class="text-danger">[교전 패배]</span> 적과 마주쳐 패배하고 심각한 피해를 입었습니다.</div>`; 
+                    canProceedAction = false; mainOutcomeStr = "교전 패배!"; 
+                }
+            }
         }
         if (gameState.hp <= 0) { processDeath(htmlLog); return; }
 
@@ -897,6 +936,20 @@
         
         document.getElementById('capybara-sprite').innerText = '😵'; 
         document.getElementById('game-over-screen').style.display = 'flex';
+        calculateStats();
+    }
+
+    function processVictory(htmlLog) {
+        gameState.isDead = true; 
+        document.getElementById('result-log').innerHTML = htmlLog; 
+        document.getElementById('main-outcome').innerText = "최종 승리!";
+        document.getElementById('main-outcome').style.color = "#f1c40f"; 
+        document.getElementById('journal-modal').style.display = 'none';
+        
+        document.getElementById('clear-reason').innerHTML = htmlLog; 
+        
+        document.getElementById('capybara-sprite').innerText = '👑'; 
+        document.getElementById('game-clear-screen').style.display = 'flex';
         calculateStats();
     }
 
