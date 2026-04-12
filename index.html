@@ -33,6 +33,41 @@
         #vis-bag { top: 90px; right: -10px; font-size: 50px;}
         #vis-armor { top: 150px; left: 80px; }
 
+        /* ---------------------------------------------------
+           컷씬 연출 전용 CSS 
+           --------------------------------------------------- */
+        #cutscene-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 150; flex-direction: column; justify-content: center; align-items: center; }
+        #cutscene-title { font-size: 40px; color: #f1c40f; margin-bottom: 40px; text-shadow: 2px 2px 10px #000; opacity: 0; transform: translateY(-20px); transition: 0.5s; }
+        #cutscene-title.show { opacity: 1; transform: translateY(0); }
+        #cutscene-stage { display: flex; justify-content: center; align-items: center; width: 100%; height: 200px; position: relative; gap: 80px; }
+        
+        .actor { font-size: 100px; position: relative; transition: 0.3s; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5)); }
+        .actor.shake { animation: shake 0.3s infinite; }
+        .actor.defeated { filter: grayscale(1) brightness(0.5); transform: scale(0.9) rotate(-15deg); transition: 0.5s; }
+        .actor.farm-bounce { animation: farmBounce 1s infinite; }
+        .actor.move-dash { animation: moveDash 1.5s forwards; }
+        .actor.hide-fade { animation: hideFade 2s forwards; }
+        
+        .flying-helmet { position: absolute; font-size: 50px; top: -20px; left: 20px; opacity: 0; }
+        .flying-helmet.fly { animation: flyHelmet 1s forwards cubic-bezier(0.25, 1, 0.5, 1); }
+        
+        .projectile { position: absolute; font-size: 30px; opacity: 0; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .projectile.shoot-right { animation: shootRight 0.3s forwards linear; }
+        .projectile.shoot-left { animation: shootLeft 0.3s forwards linear; }
+        
+        .effect-text { position: absolute; font-size: 40px; font-weight: bold; top: -50px; left: 50%; transform: translateX(-50%); opacity: 0; text-shadow: 2px 2px 4px #000; }
+        .effect-text.show { animation: floatUp 1.5s forwards; }
+
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-10px); } 50% { transform: translateX(10px); } 75% { transform: translateX(-10px); } 100% { transform: translateX(0); } }
+        @keyframes flyHelmet { 0% { opacity: 1; transform: translate(0, 0) rotate(0deg); } 100% { opacity: 0; transform: translate(100px, -200px) rotate(360deg); } }
+        @keyframes shootRight { 0% { opacity: 1; transform: translate(-50px, -50%) scale(1); } 100% { opacity: 1; transform: translate(150px, -50%) scale(2); } }
+        @keyframes shootLeft { 0% { opacity: 1; transform: translate(50px, -50%) scale(1); } 100% { opacity: 1; transform: translate(-150px, -50%) scale(2); } }
+        @keyframes farmBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        @keyframes moveDash { 0% { transform: translateX(-200px) skewX(20deg); opacity: 0; } 50% { transform: translateX(0) skewX(0); opacity: 1; } 100% { transform: translateX(200px) skewX(-20deg); opacity: 0; } }
+        @keyframes hideFade { 0% { opacity: 1; filter: brightness(1); } 100% { opacity: 0.2; filter: brightness(0.2); } }
+        @keyframes floatUp { 0% { opacity: 0; transform: translate(-50%, 0) scale(0.5); } 20% { opacity: 1; transform: translate(-50%, -20px) scale(1.2); } 80% { opacity: 1; transform: translate(-50%, -40px) scale(1); } 100% { opacity: 0; transform: translate(-50%, -60px) scale(0.8); } }
+        /* --------------------------------------------------- */
+
         /* 게임 오버 & 클리어 스크린 */
         .end-screen { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 50; flex-direction: column; justify-content: center; align-items: center; }
         #game-over-screen { color: #e74c3c; }
@@ -111,7 +146,7 @@
         .btn-unequip { background-color: #e67e22; }
         .btn-discard { background-color: #c0392b; }
 
-        /* 모바일 대응 (스크롤 압축 및 초소형화) */
+        /* 모바일 대응 최적화 */
         @media screen and (max-width: 850px) {
             #game-container { flex-direction: column; width: 100vw; height: 100vh; max-height: none; border: none; border-radius: 0; }
             #left-status-panel { width: 100%; height: auto; max-height: 25vh; border-right: none; border-bottom: 3px solid #34495e; flex-direction: row; flex-wrap: wrap; align-items: flex-start; padding: 8px; gap: 4px; }
@@ -266,9 +301,14 @@
                     <span id="pending-event-status" style="font-size: 12px; color: #e67e22;">▶ 이벤트 대기 중...</span>
                     <span id="pending-action-status" style="font-size: 12px; color: #3498db;">▶ 행동 미선택</span>
                 </div>
-                <button id="proceed-btn" onclick="executeTurn()" disabled>진행 (다음 턴)</button>
+                <button id="proceed-btn" onclick="executeTurnWrapper()" disabled>진행 (다음 턴)</button>
             </div>
         </div>
+    </div>
+    
+    <div id="cutscene-overlay">
+        <h1 id="cutscene-title"></h1>
+        <div id="cutscene-stage"></div>
     </div>
 </div>
 
@@ -276,6 +316,7 @@
     const AREA_LIST = ["학교", "병원", "주거 단지", "지하 벙커", "군사 시설"];
     
     const DATA = {
+        baseSurvivors: [0, 100, 98, 95, 91, 80, 70, 61, 53, 46, 41, 36, 32, 28, 24, 21, 18, 16, 13, 10, 7, 5, 3, 2],
         areas: {
             "학교": { encounterRateBase: 0.4, pool: ["W03","W03","W03","W03","W03","W03", "W04","W04", "W05","W05", "W06","W06","W06","W06", "W01","W01", "W02","W02", "M01","M01","M01","M01","M01","M01","M01", "M02","M02","M02","M02", "H02","H02","H02", "H01","H01", "AR01", "AR04", "B01"] },
             "병원": { encounterRateBase: 0.3, pool: ["W09","W09", "W03","W03", "W01","W01", "W02","W02","W02", "M04","M04", "M01","M01", "H01","H01","H01","H01","H01","H01", "H02","H02","H02","H02","H02", "H03","H03","H03","H03", "H04","H04", "AR04", "AR05"] },
@@ -335,7 +376,6 @@
         ]
     };
 
-    // 정렬 도우미 함수 (의료템 > 무기 > 탄약 > 방어구 > 가방)
     function getSortScore(id) {
         if (DATA.healingItems[id]) return 10000 + DATA.healingItems[id].heal;
         if (DATA.weapons[id]) return 8000 + DATA.weapons[id].cp;
@@ -376,7 +416,7 @@
                 "학교": [...DATA.areas["학교"].pool], "병원": [...DATA.areas["병원"].pool], "주거 단지": [...DATA.areas["주거 단지"].pool],
                 "지하 벙커": [...DATA.areas["지하 벙커"].pool], "군사 시설": [...DATA.areas["군사 시설"].pool]
             },
-            enemiesLeft: 100,
+            enemiesLeft: 100, extraDeaths: 0,
             isDead: false
         };
         
@@ -474,7 +514,14 @@
 
         gameState.cp = totalCP; gameState.weight = totalWeight; gameState.maxWeight = currentMaxWeight;
         gameState.isOverweight = (gameState.weight > gameState.maxWeight);
-        if(gameState.enemiesLeft < 0) gameState.enemiesLeft = 0;
+
+        if (gameState.isDead && gameState.hp > 0) {
+            gameState.enemiesLeft = 1;
+        } else {
+            let turnIdx = Math.min(23, gameState.globalTurn);
+            let calculatedEnemies = DATA.baseSurvivors[turnIdx] - gameState.extraDeaths;
+            gameState.enemiesLeft = Math.max(2, calculatedEnemies);
+        }
 
         document.getElementById('ui-hp').innerText = `${Math.max(0, gameState.hp)} / ${gameState.maxHp}`;
         document.getElementById('ui-cp').innerText = gameState.cp;
@@ -710,7 +757,11 @@
         document.getElementById('pending-event-status').style.color = "#7f8c8d";
         document.getElementById('tab-btn-event').classList.remove('highlight');
         
-        let validEvents = DATA.events.filter(e => { return (gameState.phase >= e.phaseMin && gameState.phase <= e.phaseMax) && (e.area === "전체" || e.area === gameState.currentArea); });
+        let validEvents = DATA.events.filter(e => { 
+            let phaseOk = (gameState.phase >= e.phaseMin && gameState.phase <= e.phaseMax) && (e.area === "전체" || e.area === gameState.currentArea); 
+            if (gameState.phase === 5 && e.e1 === "survivor") return false; 
+            return phaseOk;
+        });
         
         let allowEvent = true;
         if (gameState.phase === 1 && (gameState.turnInPhase === 1 || gameState.turnInPhase === 2)) allowEvent = false;
@@ -748,52 +799,134 @@
         checkReadyToProceed();
     }
 
-    function executeTurn() {
-        if (gameState.isOverweight) return;
-        let htmlLog = ""; let mainOutcomeStr = "";
+    // 컷씬 비동기 처리 함수
+    async function playCutscene(type, resultData) {
+        return new Promise(resolve => {
+            const overlay = document.getElementById('cutscene-overlay');
+            const title = document.getElementById('cutscene-title');
+            const stage = document.getElementById('cutscene-stage');
+            
+            document.getElementById('journal-modal').style.display = 'none';
+            overlay.style.display = 'flex';
+            title.className = ''; 
+            
+            // 컷씬 종류별 세팅
+            if (type === 'combat') {
+                title.innerText = "교전 발생!";
+                stage.innerHTML = `
+                    <div class="actor player" id="actor-player">🐹</div>
+                    <div class="projectile" id="proj-player">💥</div>
+                    <div class="actor enemy" id="actor-enemy">🐹</div>
+                    <div class="projectile" id="proj-enemy">💥</div>
+                `;
+            } else if (type === 'farming') {
+                title.innerText = "파밍 중...";
+                stage.innerHTML = `<div class="actor player" id="actor-player">🐹</div> <div class="actor" style="font-size:80px;" id="actor-box">📦</div>`;
+            } else if (type === 'move') {
+                title.innerText = "이동 중...";
+                stage.innerHTML = `<div class="actor player" id="actor-player" style="transform: translateX(-200px);">🐹</div>`;
+            } else if (type === 'hide') {
+                title.innerText = "은신 중...";
+                stage.innerHTML = `<div class="actor player" id="actor-player">🐹</div>`;
+            } else if (type === 'heal') {
+                title.innerText = "치료 중...";
+                stage.innerHTML = `<div class="actor player" id="actor-player">🐹</div> <div class="effect-text" id="effect-txt">➕</div>`;
+            } else {
+                title.innerText = "진행 중...";
+                stage.innerHTML = `<div class="actor player" id="actor-player">🐹</div>`;
+            }
 
+            setTimeout(() => { title.classList.add('show'); }, 100);
+
+            // 컷씬 애니메이션 로직 (약 3.5초 소요)
+            setTimeout(() => {
+                if (type === 'combat') {
+                    document.getElementById('actor-player').classList.add('shake');
+                    document.getElementById('actor-enemy').classList.add('shake');
+                    document.getElementById('proj-player').classList.add('shoot-right');
+                    document.getElementById('proj-enemy').classList.add('shoot-left');
+                    
+                    setTimeout(() => {
+                        document.getElementById('actor-player').classList.remove('shake');
+                        document.getElementById('actor-enemy').classList.remove('shake');
+                        
+                        if(resultData.isWin) {
+                            document.getElementById('actor-enemy').classList.add('defeated');
+                            document.getElementById('actor-enemy').innerHTML += '<div class="flying-helmet fly">🪖</div>';
+                        } else {
+                            document.getElementById('actor-player').classList.add('defeated');
+                            document.getElementById('actor-player').innerHTML += '<div class="flying-helmet fly">🪖</div>';
+                        }
+                    }, 1000);
+                } 
+                else if (type === 'farming') {
+                    document.getElementById('actor-player').classList.add('farm-bounce');
+                    setTimeout(() => { document.getElementById('actor-box').innerText = '🎁'; }, 800);
+                }
+                else if (type === 'move') {
+                    document.getElementById('actor-player').classList.add('move-dash');
+                }
+                else if (type === 'hide') {
+                    document.getElementById('actor-player').classList.add('hide-fade');
+                }
+                else if (type === 'heal') {
+                    document.getElementById('effect-txt').classList.add('show');
+                }
+            }, 800);
+
+            // 컷씬 종료 및 다음 페이즈 진입
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                stage.innerHTML = '';
+                resolve();
+            }, 3500);
+        });
+    }
+
+    // executeTurn을 async로 래핑
+    async function executeTurnWrapper() {
+        if (gameState.isOverweight) return;
+        document.getElementById('proceed-btn').disabled = true;
+        
+        let combatResult = { happened: false };
+        let isFinalBattle = (gameState.phase === 5 && gameState.turnInPhase === 5);
+
+        // 1. 이벤트 처리
         if (turnState.currentEvent) {
             let ev = turnState.currentEvent;
             if(ev.type === "imm") {
-                htmlLog += `<div class="log-box log-event"><strong>[상황]</strong> ${ev.name}</div>`;
                 if(ev.e1 === "hp") gameState.hp += ev.v1;
                 if(ev.e1 === "item") acquireItem(ev.v1);
                 if(ev.e2 === "item") acquireItem(ev.v2);
-                if(ev.e1 === "survivor") gameState.enemiesLeft -= ev.v1;
+                if(ev.e1 === "survivor" && gameState.phase < 5) gameState.extraDeaths += ev.v1;
                 if(ev.e1 === "loseItemType") {
                     let idx = gameState.inventory.findIndex(id => DATA[ev.v1] && DATA[ev.v1][id]);
                     if(idx !== -1) gameState.inventory.splice(idx, 1);
                 }
-                mainOutcomeStr = "상황 발생!";
             } else if(ev.type === "choice" && turnState.eventChoice !== "ack") {
                 let c = turnState.eventChoice;
-                htmlLog += `<div class="log-box log-event"><strong>[결단]</strong> '${c.text}'을(를) 선택했습니다.</div>`;
                 if(c.encMod) turnState.tempMod.enc += c.encMod;
                 if(c.encModMove) turnState.tempMod.encMove += c.encModMove;
                 if(c.cpBonus) turnState.tempMod.cp += c.cpBonus;
                 if(c.extraLoot) turnState.tempMod.loot += c.extraLoot;
                 if(c.hpMod) gameState.hp += c.hpMod;
                 if(c.items) c.items.forEach(i => acquireItem(i));
-                mainOutcomeStr = "상황 발생!";
             }
         }
 
+        // 2. 조우 판정
         let baseRate = DATA.areas[gameState.currentArea].encounterRateBase;
         let modifier = turnState.tempMod.enc; 
         if(turnState.actionType === 'farming') modifier += 0.2;
         if(turnState.actionType === 'move') modifier += (0.1 + turnState.tempMod.encMove);
         if(turnState.actionType === 'hide') modifier -= 0.3;
         if(turnState.actionType === 'fight') modifier += 0.5;
-
         if(gameState.pollutedAreas.includes(gameState.currentArea)) modifier -= 0.5;
 
         let finalRate = baseRate + modifier;
         if (gameState.phase === 1 && gameState.turnInPhase <= 2) finalRate = 0;
-        
-        let isFinalBattle = (gameState.phase === 5 && gameState.turnInPhase === 5);
         if (isFinalBattle) finalRate = 1.0;
 
-        let combatResult = { happened: false };
         if (Math.random() < finalRate) {
             let poolKey = `p${gameState.phase}`;
             if (gameState.phase === 1 && gameState.turnInPhase === 3) poolKey = "p1_t3";
@@ -812,9 +945,41 @@
                 
                 let isWin = Math.random() < winProb;
                 let dmg = isWin ? Math.floor(Math.random() * 10) + 5 : Math.floor(Math.random() * 30) + 20;
+                
+                if (isWin && (gameState.hp - dmg) <= 0) {
+                    isWin = false;
+                    dmg = Math.floor(Math.random() * 30) + 20; 
+                    if (dmg < gameState.hp) dmg = gameState.hp; 
+                }
+
                 gameState.hp -= dmg;
                 combatResult = { happened: true, isWin: isWin, damage: dmg, enemyId: eId };
-                if(isWin) gameState.enemiesLeft -= 1; 
+                if(isWin) gameState.extraDeaths += 1; 
+            }
+        }
+
+        // 컷씬 호출
+        if(combatResult.happened) {
+            await playCutscene('combat', combatResult);
+        } else {
+            await playCutscene(turnState.actionType, null);
+        }
+
+        // 이후 로직 실행 (executeTurnLogic)
+        executeTurnLogic(combatResult, isFinalBattle);
+    }
+
+    function executeTurnLogic(combatResult, isFinalBattle) {
+        let htmlLog = ""; let mainOutcomeStr = "";
+
+        if (turnState.currentEvent) {
+            let ev = turnState.currentEvent;
+            if(ev.type === "imm") {
+                htmlLog += `<div class="log-box log-event"><strong>[상황]</strong> ${ev.name}</div>`;
+                mainOutcomeStr = "상황 발생!";
+            } else if(ev.type === "choice" && turnState.eventChoice !== "ack") {
+                htmlLog += `<div class="log-box log-event"><strong>[결단]</strong> '${turnState.eventChoice.text}'을(를) 선택했습니다.</div>`;
+                mainOutcomeStr = "상황 발생!";
             }
         }
 
@@ -920,8 +1085,6 @@
         document.getElementById('main-outcome').style.color = (mainOutcomeStr.includes("패배") || mainOutcomeStr.includes("사망")) ? "#c0392b" : "#e67e22";
         
         calculateStats(); prepareNextTurn(); 
-        
-        document.getElementById('journal-modal').style.display = 'none'; 
     }
 
     function processDeath(htmlLog) {
@@ -931,6 +1094,7 @@
         document.getElementById('main-outcome').innerText = "사망...";
         document.getElementById('main-outcome').style.color = "#c0392b"; 
         document.getElementById('journal-modal').style.display = 'none';
+        document.getElementById('cutscene-overlay').style.display = 'none';
         
         document.getElementById('death-reason').innerHTML = htmlLog; 
         
@@ -945,6 +1109,7 @@
         document.getElementById('main-outcome').innerText = "최종 승리!";
         document.getElementById('main-outcome').style.color = "#f1c40f"; 
         document.getElementById('journal-modal').style.display = 'none';
+        document.getElementById('cutscene-overlay').style.display = 'none';
         
         document.getElementById('clear-reason').innerHTML = htmlLog; 
         
