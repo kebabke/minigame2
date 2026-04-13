@@ -3,27 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>카피바라 로얄</title>
+    <title>카피바라 서바이벌</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; }
-        /* 모바일 브라우저 주소창 고려 100dvh 사용 */
         body { background-color: #2c3e50; display: flex; justify-content: center; align-items: center; height: 100dvh; overflow: hidden; position: fixed; width: 100%; }
         
         #game-container { position: relative; width: 100%; max-width: 1050px; height: 100dvh; max-height: 650px; background-color: #7f8c8d; border: 4px solid #34495e; border-radius: 10px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: row;}
         
-        /* 좌측 상태 패널 개편 */
-        #left-status-panel { width: 260px; background-color: rgba(0,0,0,0.7); color: white; padding: 15px; font-size: 14px; display: flex; flex-direction: column; gap: 8px; border-right: 2px solid #34495e; z-index: 10; justify-content: space-between; overflow-y: auto; }
-        .panel-section h3 { color: #f1c40f; font-size: 15px; border-bottom: 1px solid #7f8c8d; padding-bottom: 5px; margin-top: 5px; margin-bottom: 5px;}
+        /* 좌측 상태 패널 (최상단 장착 무기) */
+        #left-status-panel { width: 260px; background-color: rgba(0,0,0,0.7); color: white; padding: 15px; font-size: 14px; display: flex; flex-direction: column; gap: 8px; border-right: 2px solid #34495e; z-index: 10; justify-content: flex-start; overflow-y: auto; }
+        .panel-section { margin-bottom: 10px; }
+        .panel-section h3 { color: #f1c40f; font-size: 15px; border-bottom: 1px solid #7f8c8d; padding-bottom: 5px; margin-top: 0px; margin-bottom: 5px;}
         
-        .equipped-item-list { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; border: 1px solid #7f8c8d; font-size: 13px; line-height: 1.6; }
-        .equipped-item-list div { display: flex; justify-content: space-between; margin-bottom: 2px; }
-        .eq-label { color: #bdc3c7; }
-        .eq-value { font-weight: bold; color: #fff; }
-        .eq-ammo { color: #f39c12; font-size: 11px; margin-left: 5px; }
+        .equipped-weapon-box { background: rgba(255,255,255,0.1); padding: 8px; border-radius: 5px; margin-bottom: 5px; border: 1px solid #7f8c8d; }
+        .equipped-weapon-title { font-size: 11px; color: #bdc3c7; }
+        .equipped-weapon-name { font-weight: bold; font-size: 15px; color: #fff; margin: 3px 0; }
+        .equipped-weapon-ammo { font-size: 12px; color: #f39c12; }
 
-        #ui-pollution-left { font-size: 13px; color: #e74c3c; font-weight: bold; text-align: center; margin-top: 5px; padding: 10px 5px; background: rgba(231, 76, 60, 0.2); border-radius: 5px; display: none; line-height: 1.5; word-break: keep-all; }
+        #ui-pollution-left { font-size: 13px; color: #e74c3c; font-weight: bold; text-align: left; margin-top: 5px; padding: 8px; background: rgba(231, 76, 60, 0.2); border-radius: 5px; display: none; line-height: 1.5; word-break: keep-all; }
 
-        /* 메인 뷰 & 캐릭터 시각 요소 (위치 조정) */
+        /* 메인 뷰 & 캐릭터 시각 요소 */
         #main-view { flex-grow: 1; position: relative; width: 100%; background-color: #95a5a6; transition: background-color 0.5s ease; overflow: hidden; }
         #character-area { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 280px; }
         .capybara { font-size: 100px; line-height: 1; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 2; }
@@ -34,14 +33,14 @@
         #vis-weapon { top: 60px; left: 30px; font-size: 50px; transform: scaleX(-1); z-index: 3;}
         #vis-bag { top: 60px; right: 10px; font-size: 50px; z-index: 1;}
 
-        /* HP 바 & CP & 무게 (신규 추가) */
+        /* HP 바 & CP & 무게 (메인화면 전용) */
         #hp-container { position: absolute; right: 70px; top: 35px; display: flex; flex-direction: column; align-items: center; gap: 5px; z-index: 4; }
         #hp-bar-bg { width: 16px; height: 100px; background: rgba(0,0,0,0.7); border: 2px solid #ecf0f1; border-radius: 8px; overflow: hidden; position: relative; box-shadow: 2px 2px 5px rgba(0,0,0,0.5); }
         #hp-bar-fill { width: 100%; height: 100%; background: #2ecc71; position: absolute; bottom: 0; transition: height 0.3s, background-color 0.3s; }
         #hp-text { font-size: 13px; color: #fff; font-weight: bold; text-shadow: 1px 1px 3px #000; margin-top: 2px;}
         
         #char-cp { position: absolute; top: 160px; left: 50%; transform: translateX(-50%); font-size: 22px; font-weight: bold; color: #f1c40f; text-shadow: 2px 2px 4px #000; width: 100%; text-align: center; z-index: 4; }
-        #char-weight { position: absolute; top: 195px; left: 50%; transform: translateX(-50%); font-size: 14px; color: #ecf0f1; font-weight: bold; text-shadow: 1px 1px 3px #000; width: 100%; text-align: center; z-index: 4; background: rgba(0,0,0,0.4); padding: 2px 10px; border-radius: 10px; display: inline-block; width: auto;}
+        #char-weight { position: absolute; top: 195px; left: 50%; transform: translateX(-50%); font-size: 14px; color: #ecf0f1; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.4); padding: 2px 10px; border-radius: 10px; display: inline-block; width: auto; z-index: 4;}
 
         /* 컷씬 연출 */
         #cutscene-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 150; flex-direction: column; justify-content: center; align-items: center; }
@@ -81,39 +80,35 @@
         #game-clear-screen { color: #f1c40f; }
         .end-screen h1 { font-size: 50px; margin-bottom: 10px; text-shadow: 2px 2px 5px #000; text-align: center; }
         .end-screen h2 { font-size: 24px; margin-bottom: 20px; color: #ecf0f1; }
-        
-        .end-reason { margin-bottom: 30px; font-size: 16px; color: #ecf0f1; text-align: left; width: 80%; max-width: 600px; line-height: 1.5; background: rgba(0,0,0,0.7); padding: 20px; border-radius: 10px; overflow-y: auto; max-height: 300px; }
-        #game-over-screen .end-reason { border: 2px solid #c0392b; }
+        .end-reason { margin-bottom: 30px; font-size: 16px; color: #ecf0f1; text-align: left; width: 80%; max-width: 600px; line-height: 1.5; background: rgba(0,0,0,0.7); padding: 20px; border-radius: 10px; overflow-y: auto; max-height: 300px; border: 2px solid #c0392b;}
         #game-clear-screen .end-reason { border: 2px solid #f1c40f; }
-        
-        .btn-restart { padding: 15px 40px; font-size: 20px; font-weight: bold; cursor: pointer; color: white; border: 2px solid #fff; border-radius: 10px; transition: 0.3s; }
-        #game-over-screen .btn-restart { background-color: #c0392b; }
+        .btn-restart { padding: 15px 40px; font-size: 20px; font-weight: bold; cursor: pointer; color: white; border: 2px solid #fff; border-radius: 10px; transition: 0.3s; background-color: #c0392b;}
         #game-over-screen .btn-restart:hover { background-color: #e74c3c; transform: scale(1.05); }
         #game-clear-screen .btn-restart { background-color: #d35400; }
         #game-clear-screen .btn-restart:hover { background-color: #e67e22; transform: scale(1.05); }
 
-        /* 수첩 버튼 및 모달 UI (잘림 방지) */
+        /* 버튼 및 모달 UI (잘림 방지) */
         #journal-btn { position: absolute; bottom: max(30px, env(safe-area-inset-bottom)); right: 30px; width: 80px; height: 100px; background-color: #f1c40f; border: 2px solid #e67e22; border-radius: 5px 15px 15px 5px; cursor: pointer; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 18px; color: #d35400; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); transition: transform 0.2s; z-index: 20; }
         #journal-btn:hover { transform: translateY(-5px) rotate(5deg); }
 
         #journal-modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 750px; height: 550px; max-width: 95%; max-height: 90%; background-color: #fcf3cf; border-radius: 10px; border: 2px solid #b7950b; box-shadow: 0 0 30px rgba(0,0,0,0.9); flex-direction: column; z-index: 100; overflow: hidden; }
         
-        #close-btn { position: absolute; top: -15px; right: -15px; width: 40px; height: 40px; border-radius: 50%; background-color: #c0392b; color: white; font-size: 20px; font-weight: bold; cursor: pointer; border: 2px solid #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 101; transition: 0.2s; }
+        #close-btn { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; border-radius: 8px; background-color: #c0392b; color: white; font-size: 20px; font-weight: bold; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 101; transition: 0.2s; }
         #close-btn:hover { background-color: #e74c3c; transform: scale(1.1); }
 
         .tabs { display: flex; background-color: #d4ac0d; border-radius: 8px 8px 0 0; flex-shrink: 0; }
-        .tab-btn { flex: 1; padding: 15px 0; border: none; background: none; font-size: 16px; font-weight: bold; color: #fff; cursor: pointer; border-right: 1px solid #b7950b; transition: 0.2s; position: relative; }
+        .tab-btn { flex: 1; padding: 12px 0; border: none; background: none; font-size: 15px; font-weight: bold; color: #fff; cursor: pointer; border-right: 1px solid #b7950b; transition: 0.2s; position: relative; }
         .tab-btn:last-child { border-right: none; }
         .tab-btn.active { background-color: #fcf3cf; color: #873600; }
         .tab-btn.highlight { background-color: #e74c3c; color: white; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { background-color: #e74c3c; } 50% { background-color: #c0392b; } 100% { background-color: #e74c3c; } }
 
-        .badge-new { display: none; position: absolute; top: 5px; right: 10px; background-color: #e74c3c; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold; box-shadow: 0 0 5px rgba(0,0,0,0.5); animation: pulse 1.5s infinite;}
+        .badge-new { display: none; position: absolute; top: 2px; right: 8px; background-color: #e74c3c; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold; box-shadow: 0 0 5px rgba(0,0,0,0.5); animation: pulse 1.5s infinite;}
 
-        .tab-content { display: none; padding: 20px; flex: 1 1 auto; overflow-y: auto; color: #3e2723; text-align: left; min-height: 0; }
+        .tab-content { display: none; padding: 15px; flex: 1 1 auto; overflow-y: auto; color: #3e2723; text-align: left; min-height: 0; }
         .tab-content.active { display: block; }
 
-        .action-select-btn, .event-choice-btn { display: block; width: 100%; padding: 15px; margin-bottom: 5px; background-color: #fff; border: 1px solid #b7950b; border-radius: 5px; text-align: left; cursor: pointer; font-size: 16px; transition: 0.2s; font-weight: bold; }
+        .action-select-btn, .event-choice-btn { display: block; width: 100%; padding: 12px; margin-bottom: 5px; background-color: #fff; border: 1px solid #b7950b; border-radius: 5px; text-align: left; cursor: pointer; font-size: 15px; transition: 0.2s; font-weight: bold; }
         .action-select-btn:hover, .event-choice-btn:hover:not(:disabled) { background-color: #fdebd0; }
         .action-select-btn.selected { background-color: #e67e22; color: white; border-color: #d35400; }
         
@@ -125,65 +120,60 @@
         .ack-btn.selected { background-color: #f1c40f !important; border-color: #f39c12 !important; color: #fff !important; }
 
         .sub-menu { display: none; padding: 10px; background-color: rgba(0,0,0,0.05); border-left: 3px solid #e67e22; margin-bottom: 10px; }
-        .sub-btn { padding: 10px 15px; margin-right: 5px; margin-bottom: 5px; cursor: pointer; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; }
+        .sub-btn { padding: 8px 12px; margin-right: 5px; margin-bottom: 5px; cursor: pointer; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; }
         .sub-btn.selected { background-color: #3498db; color: white; border-color: #2980b9; }
 
-        #proceed-area { padding: 15px; border-top: 2px dashed #b7950b; display: flex; justify-content: space-between; align-items: center; background: #fcf3cf; border-radius: 0 0 10px 10px; flex-shrink: 0; }
-        #pending-status-box { display: flex; flex-direction: column; gap: 5px; }
-        #proceed-btn { padding: 12px 30px; background-color: #27ae60; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        #proceed-area { padding: 12px; border-top: 2px dashed #b7950b; display: flex; justify-content: space-between; align-items: center; background: #fcf3cf; border-radius: 0 0 10px 10px; flex-shrink: 0; }
+        #pending-status-box { display: flex; flex-direction: column; gap: 4px; }
+        #proceed-btn { padding: 10px 20px; background-color: #27ae60; color: white; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
         #proceed-btn:hover:not(:disabled) { background-color: #2ecc71; }
         #proceed-btn:disabled { background-color: #95a5a6; cursor: not-allowed; }
         #proceed-btn.error-btn { background-color: #c0392b; }
         
-        .log-box { background: rgba(255,255,255,0.7); padding: 12px; border-radius: 5px; margin-bottom: 10px; line-height: 1.6; font-size: 15px;}
+        .log-box { background: rgba(255,255,255,0.7); padding: 12px; border-radius: 5px; margin-bottom: 10px; line-height: 1.6; font-size: 14px;}
         .log-combat { border-left: 5px solid #e74c3c; }
         .log-action { border-left: 5px solid #3498db; }
         .log-event { border-left: 5px solid #f1c40f; background: rgba(241, 196, 15, 0.1); }
         .text-danger { color: #c0392b; font-weight: bold; }
         .text-success { color: #27ae60; font-weight: bold; }
 
-        .inv-container { display: flex; gap: 20px; height: 100%; }
-        .inv-column { flex: 1; background: rgba(255,255,255,0.4); padding: 15px; border-radius: 8px; border: 1px solid #d4ac0d; overflow-y: auto; }
-        .inv-column h3 { margin-bottom: 10px; color: #873600; border-bottom: 2px dashed #b7950b; padding-bottom: 5px; }
+        .inv-container { display: flex; gap: 15px; height: 100%; }
+        .inv-column { flex: 1; background: rgba(255,255,255,0.4); padding: 12px; border-radius: 8px; border: 1px solid #d4ac0d; overflow-y: auto; }
+        .inv-column h3 { margin-bottom: 8px; color: #873600; border-bottom: 2px dashed #b7950b; padding-bottom: 5px; font-size: 15px; }
         
-        .equip-slot { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.05); padding: 8px; margin-bottom: 8px; border-radius: 4px; font-size: 14px; border: 1px solid #d4ac0d; }
-        .inv-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 5px; background: #fff; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; font-weight: bold; }
-        .btn-small { padding: 6px 12px; font-size: 12px; cursor: pointer; border: none; border-radius: 3px; color: white; margin-left: 5px; font-weight: bold; }
+        .equip-slot { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.05); padding: 6px; margin-bottom: 6px; border-radius: 4px; font-size: 13px; border: 1px solid #d4ac0d; }
+        .inv-item { display: flex; justify-content: space-between; align-items: center; padding: 6px; margin-bottom: 5px; background: #fff; border-radius: 4px; border: 1px solid #ccc; font-size: 13px; font-weight: bold; }
+        .btn-small { padding: 5px 10px; font-size: 11px; cursor: pointer; border: none; border-radius: 3px; color: white; margin-left: 4px; font-weight: bold; }
         .btn-equip { background-color: #2980b9; }
         .btn-unequip { background-color: #e67e22; }
         .btn-discard { background-color: #c0392b; }
 
-        /* 모바일 대응 (스크롤 압축 및 잘림 방지) */
+        /* 모바일 대응 극강 최적화 */
         @media screen and (max-width: 850px) {
             #game-container { flex-direction: column; width: 100vw; height: 100dvh; max-height: none; border: none; border-radius: 0; }
             #left-status-panel { width: 100%; height: auto; max-height: 25vh; border-right: none; border-bottom: 3px solid #34495e; flex-direction: row; flex-wrap: wrap; align-items: flex-start; padding: 8px; gap: 4px; }
             .panel-section { width: 48%; margin-bottom: 2px; }
             .panel-section h3 { font-size: 12px; margin-top: 2px; padding-bottom: 2px;}
-            .equipped-item-list { padding: 5px; font-size: 11px; line-height: 1.4; }
-            .status-row { font-size: 11px; margin-bottom: 1px; }
             
             #main-view { width: 100%; flex-grow: 1; height: 75vh; }
-            #character-area { transform: translate(-50%, -50%) scale(0.7); top: 40%; }
-            #journal-btn { bottom: max(15px, env(safe-area-inset-bottom)); right: 15px; width: 65px; height: 80px; font-size: 14px; }
+            #character-area { transform: translate(-50%, -50%) scale(0.65); top: 40%; }
+            #journal-btn { bottom: max(15px, env(safe-area-inset-bottom)); right: 15px; width: 60px; height: 75px; font-size: 14px; }
             
-            #journal-modal { width: 98%; height: 95%; max-height: 95dvh; border-radius: 8px; }
-            #close-btn { top: 5px; right: 5px; width: 35px; height: 35px; font-size: 16px; border-radius: 5px; } 
+            #journal-modal { width: 96%; height: 96%; max-height: 96dvh; border-radius: 8px; }
             
-            .tab-btn { font-size: 13px; padding: 12px 2px; }
-            .tab-content { padding: 12px; }
+            .tab-btn { font-size: 13px; padding: 10px 2px; }
+            .tab-content { padding: 10px; }
             
             .inv-container { flex-direction: column; display: block; }
-            .inv-column { width: 100%; margin-bottom: 10px; overflow: visible; height: auto; padding: 10px; }
+            .inv-column { width: 100%; margin-bottom: 10px; overflow: visible; height: auto; padding: 8px; }
             
-            #proceed-area { flex-direction: row; gap: 10px; text-align: left; padding: 12px; }
-            #proceed-btn { width: auto; flex-grow: 1; padding: 15px 10px; font-size: 16px; }
-            .action-select-btn, .event-choice-btn { padding: 12px 10px; font-size: 14px; margin-bottom: 5px; }
+            #proceed-area { flex-direction: row; gap: 8px; text-align: left; padding: 10px; }
+            #proceed-btn { width: auto; flex-grow: 1; padding: 12px 8px; font-size: 15px; }
+            .action-select-btn, .event-choice-btn { padding: 10px; font-size: 14px; margin-bottom: 4px; }
             
             .end-screen h1 { font-size: 35px; }
             .end-screen h2 { font-size: 18px; }
             .end-reason { font-size: 13px; padding: 12px; width: 95%; max-height: 200px; }
-            
-            .ammo-grid { font-size: 11px !important; padding: 5px !important; }
         }
     </style>
 </head>
@@ -192,35 +182,36 @@
 <div id="game-container">
     <div id="left-status-panel">
         <div class="panel-section">
+            <h3>🔫 장착 무기</h3>
+            <div class="equipped-weapon-box">
+                <div class="equipped-weapon-title">주무기</div>
+                <div class="equipped-weapon-name" id="ui-main-w-name">없음</div>
+            </div>
+            <div class="equipped-weapon-box">
+                <div class="equipped-weapon-title">저격총</div>
+                <div class="equipped-weapon-name" id="ui-sniper-w-name">없음</div>
+            </div>
+        </div>
+
+        <div class="panel-section">
             <div style="text-align: center; font-size: 16px; font-weight: bold; color: #f1c40f; margin-bottom: 2px;">페이즈 <span id="ui-phase-left">1</span></div>
             <div style="text-align: center; font-size: 12px; color: #bdc3c7; border-bottom: 1px solid #7f8c8d; padding-bottom: 5px; margin-bottom: 5px;">턴 <span id="ui-turn-left">1</span></div>
             
-            <div style="font-size: 12px; color: #bdc3c7; margin-top: 10px;">📍 위치: <span style="color: #3498db; font-weight: bold;" id="ui-area-left">주거 단지</span></div>
-            <div style="font-size: 12px; color: #bdc3c7; margin-top: 5px;">생존자 수: <span style="color: #e74c3c; font-weight: bold; font-size: 16px;"><span id="ui-enemies-left">100</span> / 100</span></div>
+            <div style="font-size: 12px; color: #bdc3c7; margin-top: 5px;">📍 위치: <span style="color: #3498db; font-weight: bold;" id="ui-area-left">주거 단지</span></div>
+            <div style="font-size: 12px; color: #bdc3c7; margin-top: 2px;">생존자 수: <span style="color: #e74c3c; font-weight: bold; font-size: 16px;"><span id="ui-enemies-left">100</span> / 100</span></div>
             
-            <div id="ui-pollution-left" style="margin-top: 10px;">⚠️ 누적 오염 구역<br></div>
-        </div>
-
-        <div class="panel-section" style="flex-grow: 1; display:flex; flex-direction:column; justify-content: center;">
-            <h3>🔫 장착 장비</h3>
-            <div class="equipped-item-list">
-                <div><span class="eq-label">주무기:</span> <div><span class="eq-value" id="ui-eq-main">없음</span> <span id="ui-eq-main-ammo" class="eq-ammo"></span></div></div>
-                <div><span class="eq-label">저격총:</span> <div><span class="eq-value" id="ui-eq-sniper">없음</span> <span id="ui-eq-sniper-ammo" class="eq-ammo"></span></div></div>
-                <div><span class="eq-label">헬멧:</span> <span class="eq-value" id="ui-eq-helmet">없음</span></div>
-                <div><span class="eq-label">방어구:</span> <span class="eq-value" id="ui-eq-armor">없음</span></div>
-                <div><span class="eq-label">가방:</span> <span class="eq-value" id="ui-eq-bag">없음</span></div>
-            </div>
-            <div style="font-size: 11px; color: #e74c3c; margin-top: 5px;" id="ui-ammo-warning"></div>
+            <div id="ui-pollution-left">⚠️ 누적 오염 구역<br></div>
         </div>
         
-        <div class="panel-section">
+        <div class="panel-section" style="width: 100%;">
             <h3>📦 탄약 현황</h3>
-            <div class="ammo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 12px; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; border: 1px solid #7f8c8d;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; background: rgba(0,0,0,0.3); padding: 6px; border-radius: 5px; border: 1px solid #7f8c8d;">
                 <div>권총탄: <span id="ui-ammo-pistol">0</span></div>
                 <div>샷건탄: <span id="ui-ammo-shotgun">0</span></div>
                 <div>소총탄: <span id="ui-ammo-rifle">0</span></div>
                 <div>저격탄: <span id="ui-ammo-sniper">0</span></div>
             </div>
+            <div style="font-size: 11px; color: #e74c3c; margin-top: 2px;" id="ui-ammo-warning"></div>
         </div>
     </div>
 
@@ -241,10 +232,10 @@
 
         <div id="character-area">
             <div id="vis-helmet" class="vis-icon">🪖</div>
-            <div id="vis-weapon" class="vis-icon">🏏</div>
-            <div class="capybara" id="capybara-sprite">🐹</div>
             <div id="vis-armor" class="vis-icon">👕</div>
             <div id="vis-bag" class="vis-icon">🎒</div>
+            <div class="capybara" id="capybara-sprite">🐹</div>
+            <div id="vis-weapon" class="vis-icon">🏏</div>
             
             <div id="hp-container">
                 <div id="hp-bar-bg"><div id="hp-bar-fill"></div></div>
@@ -267,7 +258,7 @@
             </div>
 
             <div id="tab-result" class="tab-content active">
-                <h1 id="main-outcome" style="text-align: center; color: #e67e22; margin-bottom: 20px; font-size: 28px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">새로운 아침</h1>
+                <h1 id="main-outcome" style="text-align: center; color: #e67e22; margin-bottom: 15px; font-size: 26px; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">새로운 아침</h1>
                 <div id="result-log"></div>
             </div>
 
@@ -277,32 +268,32 @@
                 <button class="action-select-btn" id="btn-act-farming" onclick="selectAction('farming', this)">🔍 파밍</button>
                 <button class="action-select-btn" id="btn-act-move" onclick="selectAction('move', this)">🚶 이동</button>
                 <div id="sub-move" class="sub-menu">
-                    <p style="font-size: 13px; margin-bottom: 5px; color:#555;">어디로 이동하시겠습니까?</p>
+                    <p style="font-size: 12px; margin-bottom: 5px; color:#555;">어디로 이동하시겠습니까?</p>
                     <div id="move-options"></div>
                 </div>
                 <button class="action-select-btn" id="btn-act-hide" onclick="selectAction('hide', this)">🥷 숨기</button>
                 <button class="action-select-btn" id="btn-act-fight" onclick="selectAction('fight', this)">🔫 교전</button>
                 <button class="action-select-btn" id="btn-act-heal" onclick="selectAction('heal', this)">💊 회복</button>
                 <div id="sub-heal" class="sub-menu">
-                    <p style="font-size: 13px; margin-bottom: 5px; color:#555;">어떤 아이템을 사용하시겠습니까?</p>
+                    <p style="font-size: 12px; margin-bottom: 5px; color:#555;">어떤 아이템을 사용하시겠습니까?</p>
                     <div id="heal-options"></div>
                 </div>
             </div>
 
             <div id="tab-event" class="tab-content">
                 <h3 id="event-title">현재 발생한 이벤트가 없습니다.</h3>
-                <div id="event-description" style="margin: 15px 0; padding: 15px; background-color: rgba(0,0,0,0.05); border-left: 4px solid #c0392b; font-size: 14px; font-weight: bold; line-height: 1.5; display: none;"></div>
+                <div id="event-description" style="margin: 10px 0; padding: 12px; background-color: rgba(0,0,0,0.05); border-left: 4px solid #c0392b; font-size: 14px; font-weight: bold; line-height: 1.5; display: none;"></div>
                 <div id="event-choices"></div>
             </div>
 
             <div id="tab-inventory" class="tab-content">
                 <div class="inv-container">
                     <div class="inv-column">
-                        <h3>장착 장비 <span style="font-size: 12px; color: #7f8c8d; font-weight: normal;">(무게 제외)</span></h3>
+                        <h3>장착 장비 <span style="font-size: 11px; color: #7f8c8d; font-weight: normal;">(무게 제외)</span></h3>
                         <div id="equipment-slots"></div>
                     </div>
                     <div class="inv-column">
-                        <h3>가방 <span style="font-size: 14px; font-weight: normal; color: #c0392b;" id="ui-weight-inv-text">(무게: <span id="ui-weight-inv">0 / 10</span>)</span></h3>
+                        <h3>가방 <span style="font-size: 13px; font-weight: normal; color: #c0392b;" id="ui-weight-inv-text">(무게: <span id="ui-weight-inv">0 / 10</span>)</span></h3>
                         <div id="inventory-list"></div>
                     </div>
                 </div>
@@ -310,8 +301,8 @@
 
             <div id="proceed-area">
                 <div id="pending-status-box">
-                    <span id="pending-event-status" style="font-size: 13px; color: #e67e22; font-weight: bold;">▶ 이벤트 대기 중...</span>
-                    <span id="pending-action-status" style="font-size: 13px; color: #3498db; font-weight: bold;">▶ 행동 미선택</span>
+                    <span id="pending-event-status" style="font-size: 12px; color: #e67e22; font-weight: bold;">▶ 이벤트 대기 중...</span>
+                    <span id="pending-action-status" style="font-size: 12px; color: #3498db; font-weight: bold;">▶ 행동 미선택</span>
                 </div>
                 <button id="proceed-btn" onclick="executeTurnWrapper()" disabled>진행 (다음 턴)</button>
             </div>
@@ -327,6 +318,7 @@
 <script>
     const AREA_LIST = ["학교", "병원", "주거 단지", "지하 벙커", "군사 시설"];
     
+    // 생존자 감소 공식 턴별 고정 (0번 인덱스는 더미)
     const DATA = {
         baseSurvivors: [0, 100, 98, 95, 91, 80, 70, 61, 53, 46, 41, 36, 32, 28, 24, 21, 18, 16, 13, 10, 7, 5, 3, 2],
         areas: {
@@ -355,7 +347,7 @@
         },
         backpacks: { "B01": { name: "작은 가방", slot: "backpack", maxWeightBonus: 10, weight: 0 }, "B02": { name: "등산 가방", slot: "backpack", maxWeightBonus: 20, weight: 0 }, "B03": { name: "군용 가방", slot: "backpack", maxWeightBonus: 30, weight: 0 } },
         healingItems: { "H01": { name: "진통제", weight: 1, heal: 10 }, "H02": { name: "붕대", weight: 1, heal: 20 }, "H03": { name: "구급약", weight: 2, heal: 40 }, "H04": { name: "응급처치 키트", weight: 3, heal: 80 } },
-        ammoItems: { "M01": { name: "권총탄 묶음", amount: 6, weight: 2, targetWeapon: "권총" }, "M02": { name: "샷건탄 묶음", amount: 4, weight: 2, targetWeapon: "샷건" }, "M03": { name: "소총탄 묶음", amount: 6, weight: 3, targetWeapon: "소총" }, "M04": { name: "저격탄 묶음", amount: 3, weight: 2, targetWeapon: "저격총" } },
+        ammoItems: { "M01": { name: "권총탄 묶음", amount: 6, weight: 2, ammoType: "권총탄" }, "M02": { name: "샷건탄 묶음", amount: 4, weight: 2, ammoType: "샷건탄" }, "M03": { name: "소총탄 묶음", amount: 6, weight: 3, ammoType: "소총탄" }, "M04": { name: "저격탄 묶음", amount: 3, weight: 2, ammoType: "저격탄" } },
         enemies: {
             "E01": { name: "막대 도주민", cp: 1, drops: ["W01"] }, "E02": { name: "몽둥이 불량배", cp: 2, drops: ["W02"] }, "E03": { name: "패딩 돌격꾼", cp: 4, drops: ["W02", "AR04"] }, 
             "E04": { name: "P18C 러너", cp: 8, drops: ["W03", "M01"] }, "E05": { name: "D.Eagle 사냥꾼", cp: 10, drops: ["W04", "M01"] }, "E06": { name: "펌프 매복꾼", cp: 16, drops: ["W06", "M02"] },
@@ -381,13 +373,13 @@
             { id: "EV_I_009", type: "imm", name: "버려진 진통제를 주웠다", phaseMin: 1, phaseMax: 5, area: "전체", weight: 8, e1: "item", v1: "H01" },
             { id: "EV_I_010", type: "imm", name: "붕대 꾸러미를 발견했다", phaseMin: 1, phaseMax: 5, area: "전체", weight: 8, e1: "item", v1: "H02" },
             { id: "EV_I_025", type: "imm", name: "벙커 탄약 캐비닛이 반쯤 열려 있었다", phaseMin: 2, phaseMax: 5, area: "지하 벙커", weight: 8, e1: "item", v1: "M03", e2: "item", v2: "M02" },
-            
             { id: "EV_C_001", type: "choice", name: "낙오자의 흔적이 이어져 있다", phaseMin: 1, phaseMax: 5, area: "전체", weight: 10, choices: [ { text: "흔적을 쫓는다", encMod: 0.15, extraLoot: 1 }, { text: "숨을 죽이고 피한다", encMod: -0.10 } ] },
             { id: "EV_C_002", type: "choice", name: "무너진 엄폐물이 눈에 띈다", phaseMin: 1, phaseMax: 5, area: "전체", weight: 10, choices: [ { text: "자리를 선점한다", cpBonus: 10 }, { text: "돌아서 간다", encModMove: -0.10 } ] },
             { id: "EV_C_007", type: "choice", name: "잠긴 교무실 문이 보인다", phaseMin: 1, phaseMax: 5, area: "학교", weight: 10, choices: [ { text: "문을 부순다", items: ["M01", "H01"], encMod: 0.10 }, { text: "조용히 주변만 뒤진다", items: ["H02"], encMod: -0.05 } ] }
         ]
     };
 
+    // 1) 고정 정렬 도우미 함수 (의료템 > 무기 > 탄약 > 헬멧/갑옷 > 가방)
     function getSortScore(id) {
         if (DATA.healingItems[id]) return 10000 + DATA.healingItems[id].heal;
         if (DATA.weapons[id]) return 8000 + DATA.weapons[id].cp;
@@ -408,7 +400,7 @@
     function getItemDef(id) { return DATA.weapons[id] || DATA.armors[id] || DATA.backpacks[id] || DATA.healingItems[id] || DATA.ammoItems[id]; }
 
     let gameState = {};
-    let turnState = { actionType: null, actionData: null, currentEvent: null, eventChoice: null, tempMod: { enc: 0, cp: 0, loot: 0, encMove: 0 }, healQueue: [] };
+    let turnState = { actionType: null, actionData: null, currentEvent: null, eventChoice: null, tempMod: { enc: 0, cp: 0, loot: 0, encMove: 0 }, healQueue: [], ammoSpent: { "권총탄": 0, "샷건탄": 0, "소총탄": 0, "저격탄": 0 } };
 
     function initGame() {
         let startRand = Math.random() * 100;
@@ -424,6 +416,7 @@
             currentArea: startArea, pollutedAreas: [], inventory: [], weight: 0, maxWeight: 10, isOverweight: false,
             equipment: { mainWeapon: null, sniperWeapon: null, helmet: null, armor: null, backpack: null },
             ammo: { "권총탄": 0, "샷건탄": 0, "소총탄": 0, "저격탄": 0 },
+            ammoSpent: { "권총탄": 0, "샷건탄": 0, "소총탄": 0, "저격탄": 0 },
             areaPools: {
                 "학교": [...DATA.areas["학교"].pool], "병원": [...DATA.areas["병원"].pool], "주거 단지": [...DATA.areas["주거 단지"].pool],
                 "지하 벙커": [...DATA.areas["지하 벙커"].pool], "군사 시설": [...DATA.areas["군사 시설"].pool]
@@ -483,77 +476,70 @@
         let mw = gameState.equipment.mainWeapon; let sw = gameState.equipment.sniperWeapon;
         if(mw) {
             let def = DATA.weapons[mw];
-            document.getElementById('ui-eq-main').innerText = def.name;
-            document.getElementById('ui-eq-main-ammo').innerText = def.ammoType !== "없음" ? `[${gameState.ammo[def.ammoType]}]` : "";
             document.getElementById('ui-main-w-name').innerText = def.name;
-            document.getElementById('ui-main-w-ammo').innerText = def.ammoType !== "없음" ? `[${def.ammoType}: ${gameState.ammo[def.ammoType]}]` : "";
-        } else { 
-            document.getElementById('ui-eq-main').innerText = "없음"; document.getElementById('ui-eq-main-ammo').innerText = "";
-            document.getElementById('ui-main-w-name').innerText = "없음"; document.getElementById('ui-main-w-ammo').innerText = ""; 
-        }
+            document.getElementById('ui-main-w-ammo').innerText = def.ammoType !== "없음" ? `[${gameState.ammo[def.ammoType]}]` : "";
+        } else { document.getElementById('ui-main-w-name').innerText = "없음"; document.getElementById('ui-main-w-ammo').innerText = ""; }
 
         if(sw) {
             let def = DATA.weapons[sw];
-            document.getElementById('ui-eq-sniper').innerText = def.name;
-            document.getElementById('ui-eq-sniper-ammo').innerText = def.ammoType !== "없음" ? `[${gameState.ammo[def.ammoType]}]` : "";
             document.getElementById('ui-sniper-w-name').innerText = def.name;
-            document.getElementById('ui-sniper-w-ammo').innerText = def.ammoType !== "없음" ? `[${def.ammoType}: ${gameState.ammo[def.ammoType]}]` : "";
-        } else { 
-            document.getElementById('ui-eq-sniper').innerText = "없음"; document.getElementById('ui-eq-sniper-ammo').innerText = "";
-            document.getElementById('ui-sniper-w-name').innerText = "없음"; document.getElementById('ui-sniper-w-ammo').innerText = ""; 
-        }
-        
-        document.getElementById('ui-eq-helmet').innerText = gameState.equipment.helmet ? getItemName(gameState.equipment.helmet) : "없음";
-        document.getElementById('ui-eq-armor').innerText = gameState.equipment.armor ? getItemName(gameState.equipment.armor) : "없음";
-        document.getElementById('ui-eq-bag').innerText = gameState.equipment.backpack ? getItemName(gameState.equipment.backpack) : "없음";
+            document.getElementById('ui-sniper-w-ammo').innerText = def.ammoType !== "없음" ? `[${gameState.ammo[def.ammoType]}]` : "";
+        } else { document.getElementById('ui-sniper-w-name').innerText = "없음"; document.getElementById('ui-sniper-w-ammo').innerText = ""; }
     }
 
     function calculateStats() {
         let totalCP = 0; let totalWeight = 0; let currentMaxWeight = 10; let warningMsg = "";
 
+        // 장착 장비는 무게 0 처리 (배낭 보너스만 적용)
         if (gameState.equipment.backpack) { currentMaxWeight += DATA.backpacks[gameState.equipment.backpack].maxWeightBonus; }
         if (gameState.equipment.helmet) { totalCP += DATA.armors[gameState.equipment.helmet].cp; }
         if (gameState.equipment.armor) { totalCP += DATA.armors[gameState.equipment.armor].cp; }
 
-        gameState.ammo = { "권총탄": 0, "샷건탄": 0, "소총탄": 0, "저격탄": 0 };
+        let baseAmmo = { "권총탄": 0, "샷건탄": 0, "소총탄": 0, "저격탄": 0 };
         gameState.inventory.forEach(itemId => {
             let def = getItemDef(itemId);
             if(def) totalWeight += def.weight;
             if (DATA.ammoItems[itemId]) {
-                if(DATA.ammoItems[itemId].targetWeapon === "권총") gameState.ammo["권총탄"] += DATA.ammoItems[itemId].amount;
-                if(DATA.ammoItems[itemId].targetWeapon === "샷건") gameState.ammo["샷건탄"] += DATA.ammoItems[itemId].amount;
-                if(DATA.ammoItems[itemId].targetWeapon === "소총") gameState.ammo["소총탄"] += DATA.ammoItems[itemId].amount;
-                if(DATA.ammoItems[itemId].targetWeapon === "저격총") gameState.ammo["저격탄"] += DATA.ammoItems[itemId].amount;
+                baseAmmo[DATA.ammoItems[itemId].ammoType] += DATA.ammoItems[itemId].amount;
             }
         });
+        
+        // 소비된 탄약 반영 (음수 방지)
+        gameState.ammo = {
+            "권총탄": Math.max(0, baseAmmo["권총탄"] - gameState.ammoSpent["권총탄"]),
+            "샷건탄": Math.max(0, baseAmmo["샷건탄"] - gameState.ammoSpent["샷건탄"]),
+            "소총탄": Math.max(0, baseAmmo["소총탄"] - gameState.ammoSpent["소총탄"]),
+            "저격탄": Math.max(0, baseAmmo["저격탄"] - gameState.ammoSpent["저격탄"])
+        };
 
         if (gameState.equipment.mainWeapon) {
             let w = DATA.weapons[gameState.equipment.mainWeapon];
             if (w.ammoType === "없음" || gameState.ammo[w.ammoType] >= w.ammoCost) totalCP += w.cp;
-            else warningMsg += `※ 주무기(${w.name}) 탄약 부족!<br>`;
+            else warningMsg += `※ 주무기 탄약 부족!<br>`;
         }
         if (gameState.equipment.sniperWeapon) {
             let w = DATA.weapons[gameState.equipment.sniperWeapon];
             if (w.ammoType === "없음" || gameState.ammo[w.ammoType] >= w.ammoCost) totalCP += w.cp;
-            else warningMsg += `※ 저격총(${w.name}) 탄약 부족!<br>`;
+            else warningMsg += `※ 저격총 탄약 부족!<br>`;
         }
 
         gameState.cp = totalCP; gameState.weight = totalWeight; gameState.maxWeight = currentMaxWeight;
         gameState.isOverweight = (gameState.weight > gameState.maxWeight);
 
-        if (gameState.isDead && gameState.hp > 0) {
-            gameState.enemiesLeft = 1;
+        // 생존자 감소 공식화
+        if (gameState.isDead && gameState.hp <= 0) {
+            // 죽으면 더 깎지 않음
         } else {
             let turnIdx = Math.min(23, gameState.globalTurn);
             let calculatedEnemies = DATA.baseSurvivors[turnIdx] - gameState.extraDeaths;
             gameState.enemiesLeft = Math.max(2, calculatedEnemies);
         }
 
+        // 메인 화면 UI 갱신
         let hpPercent = (gameState.hp / gameState.maxHp) * 100;
         if(hpPercent < 0) hpPercent = 0;
         document.getElementById('ui-hp').innerText = `${Math.max(0, gameState.hp)} / ${gameState.maxHp}`;
         document.getElementById('hp-text').innerText = `${Math.max(0, gameState.hp)} / ${gameState.maxHp}`;
-        
         let hpFill = document.getElementById('hp-bar-fill');
         hpFill.style.height = `${hpPercent}%`;
         if(hpPercent > 50) hpFill.style.backgroundColor = "#2ecc71";
@@ -562,25 +548,22 @@
 
         document.getElementById('ui-cp').innerText = gameState.cp;
         document.getElementById('char-cp').innerText = `CP: ${gameState.cp}`;
-        
         const weightText = `${gameState.weight} / ${gameState.maxWeight}`;
         document.getElementById('ui-weight').innerText = weightText;
-        document.getElementById('ui-weight-inv').innerText = weightText;
         document.getElementById('char-weight').innerText = `무게: ${weightText}`;
+        document.getElementById('ui-weight-inv').innerText = weightText;
         
         let isOver = gameState.isOverweight;
         document.getElementById('ui-weight').style.color = isOver ? "#c0392b" : "white"; 
-        document.getElementById('ui-weight').style.fontWeight = isOver ? "bold" : "normal";
-        document.getElementById('ui-weight-inv-text').style.color = isOver ? "#c0392b" : "#3e2723";
-        document.getElementById('ui-weight-inv-text').style.fontWeight = isOver ? "bold" : "normal";
         document.getElementById('char-weight').style.color = isOver ? "#c0392b" : "#ecf0f1"; 
+        document.getElementById('ui-weight-inv-text').style.color = isOver ? "#c0392b" : "#3e2723";
         
         document.getElementById('ui-area-left').innerText = gameState.currentArea;
         document.getElementById('ui-enemies-left').innerText = gameState.enemiesLeft;
-        
         document.getElementById('ui-phase-left').innerText = gameState.phase;
         document.getElementById('ui-turn-left').innerText = gameState.globalTurn;
         
+        // 2) 오염 구역 리스트 쉼표 제거 및 줄바꿈 적용
         let pollEl = document.getElementById('ui-pollution-left');
         if(gameState.pollutedAreas.length > 0) { 
             pollEl.style.display = 'block'; 
@@ -613,6 +596,7 @@
         let counts = {};
         gameState.inventory.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
         
+        // 1) 고정 정렬 (점수 내림차순 -> 알파벳 오름차순으로 안정적 정렬)
         let sortedIds = Object.keys(counts).sort((a, b) => {
             let diff = getSortScore(b) - getSortScore(a);
             if (diff !== 0) return diff;
@@ -650,8 +634,8 @@
         if(idx > -1) {
             gameState.inventory.splice(idx, 1);
             calculateStats();
-            // ID 기반이므로 큐가 꼬이지 않으나, 혹시 버린 후 개수 초과될 수 있으므로 리빌드
             if(turnState.actionType === 'heal') {
+                // 회복 큐 내에서 버려진 아이템 초과분 제거
                 let currentUses = turnState.healQueue.filter(x => x === id).length;
                 let newCount = gameState.inventory.filter(x => x === id).length;
                 while(currentUses > newCount) {
@@ -668,7 +652,6 @@
         if(gameState.isDead) return;
         const modal = document.getElementById('journal-modal');
         modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
-        
         if(modal.style.display === 'flex') {
             document.getElementById('tab-btn-result').click();
             calculateStats();
@@ -759,10 +742,7 @@
         document.querySelectorAll('.event-choice-btn').forEach(el => {
             el.classList.remove('selected', 'confirmed');
             el.disabled = true; 
-            el.style.opacity = '0.5';
         });
-        
-        btnElement.style.opacity = '1';
         
         if (choiceId === "ack") {
             btnElement.classList.add('confirmed', 'ack-btn');
@@ -832,7 +812,6 @@
             let ev = turnState.currentEvent;
             document.getElementById('tab-btn-event').classList.add('highlight');
             document.getElementById('event-title').innerText = "⚠️ 상황 발생";
-            
             document.getElementById('pending-event-status').innerText = "▶ 이벤트 확인 필요";
             document.getElementById('pending-event-status').style.color = "#e67e22";
 
@@ -863,7 +842,7 @@
             title.className = ''; 
             
             if (type === 'combat') {
-                title.innerText = resultData.isFinal ? "최종 교전!" : "교전 발생!";
+                title.innerText = resultData.isFinal ? "최종 결전!" : "교전 발생!";
                 stage.innerHTML = `
                     <div class="actor player" id="actor-player">🐹</div>
                     <div class="projectile" id="proj-player">💥</div>
@@ -984,6 +963,7 @@
                 let isWin = Math.random() < winProb;
                 let dmg = isWin ? Math.floor(Math.random() * 10) + 5 : Math.floor(Math.random() * 30) + 20;
                 
+                // 동귀어진 방지 로직 (체력 0 이하면 패배 처리)
                 if (isWin && (gameState.hp - dmg) <= 0) {
                     isWin = false;
                     dmg = Math.floor(Math.random() * 30) + 20; 
@@ -994,6 +974,31 @@
                 combatResult = { happened: true, isWin: isWin, damage: dmg, enemyId: eId, isFinal: isFinalBattle };
                 if(isWin) gameState.extraDeaths += 1; 
             }
+        }
+
+        // 탄약 소모 로직
+        if(combatResult.happened) {
+            let weaponsToUse = [];
+            if(gameState.equipment.mainWeapon) weaponsToUse.push(DATA.weapons[gameState.equipment.mainWeapon]);
+            if(gameState.equipment.sniperWeapon) weaponsToUse.push(DATA.weapons[gameState.equipment.sniperWeapon]);
+            weaponsToUse.forEach(w => {
+                if(w.ammoType !== "없음" && gameState.ammo[w.ammoType] >= w.ammoCost) {
+                    gameState.ammoSpent[w.ammoType] += w.ammoCost;
+                    let bundleId = Object.keys(DATA.ammoItems).find(k => DATA.ammoItems[k].ammoType === w.ammoType);
+                    if(bundleId) {
+                        let amt = DATA.ammoItems[bundleId].amount;
+                        while(gameState.ammoSpent[w.ammoType] >= amt) {
+                            let idx = gameState.inventory.indexOf(bundleId);
+                            if(idx !== -1) {
+                                gameState.inventory.splice(idx, 1);
+                                gameState.ammoSpent[w.ammoType] -= amt;
+                            } else {
+                                gameState.ammoSpent[w.ammoType] = 0; break;
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         if(combatResult.happened) await playCutscene('combat', combatResult);
